@@ -1,4 +1,5 @@
 <template>
+  <Header />
   <div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
     <div class="container" style="max-width: 600px;">
       <div class="card shadow">
@@ -31,7 +32,7 @@
             </select>
           </div>
           <div class="mb-3">
-            <label for="statement" class="form-label">بیانه (تومان)</label>
+            <label for="statement" class="form-label">بیانه</label>
             <div class="input-group mb-2">
               <button class="btn btn-outline-secondary" type="button" @click="decreaseStatement">-</button>
               <input
@@ -72,9 +73,11 @@
     </div>
   </div>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+  <Footer />
 </template>
 
 <script setup>
+import Footer from '~/components/ّFooter.vue'
 import { ref, computed } from "vue";
 
 const quickAmounts = [100000, 200000, 300000, 400000];

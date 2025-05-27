@@ -1,0 +1,41 @@
+/* Main CSS File */
+:root {
+  --primary-color: #1a2a4f;
+  --secondary-color: #d4af37;
+  --text-color: #333;
+  --light-text: #e0e0e0;
+  --background-color: #f5f7ff;
+}
+
+body {
+  font-family: 'Vazir', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Global Link Styles */
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+/* Container Styles */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+}
