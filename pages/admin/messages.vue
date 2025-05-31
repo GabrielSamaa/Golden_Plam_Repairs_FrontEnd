@@ -77,42 +77,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Reply Modal -->
-    <div class="modal" :class="{ show: showReplyModal }">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5>پاسخ به پیام</h5>
-          <button @click="showReplyModal = false">&times;</button>
-        </div>
-        <div class="modal-body">
-          <form @submit.prevent="sendReply">
-            <div class="form-group">
-              <label>متن پاسخ:</label>
-              <textarea 
-                class="form-control" 
-                v-model="replyContent" 
-                rows="5" 
-                required
-              ></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-secondary" @click="showReplyModal = false">
-                انصراف
-              </button>
-              <button type="submit" class="btn btn-primary">
-                ارسال پاسخ
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 definePageMeta({
   layout: 'admin'
@@ -124,31 +93,28 @@ const showReplyModal = ref(false)
 const selectedMessage = ref(null)
 const replyContent = ref('')
 
-const messages = ref([
-  {
-    id: 1,
-    sender: 'علی محمدی',
-    email: 'ali@example.com',
-    date: '1402/05/15',
-    content: 'سلام، من یک مشکل با دستگاه خودم دارم. لطفاً راهنمایی کنید.',
-    read: false
-  },
-  {
-    id: 2,
-    sender: 'مریم احمدی',
-    email: 'maryam@example.com',
-    date: '1402/05/14',
-    content: 'با سلام، می‌خواستم از خدمات خوب شما تشکر کنم.',
-    read: true
-  }
-])
+// خواندن پیام‌ها از localStorage
+const messages = ref([])
+
+// تابع برای بارگذاری پیام‌ها
+const loadMessages = () => {
+  const storedMessages = JSON.parse(localStorage.getItem('userMessages') || '[]')
+  messages.value = storedMessages
+}
+
+// بارگذاری پیام‌ها در زمان لود صفحه
+onMounted(() => {
+  loadMessages()
+})
 
 const filteredMessages = computed(() => {
   if (!searchQuery.value) return messages.value
   const query = searchQuery.value.toLowerCase()
   return messages.value.filter(message => 
     message.sender.toLowerCase().includes(query) ||
-    message.content.toLowerCase().includes(query)
+    message.content.toLowerCase().includes(query) ||
+    message.subject.toLowerCase().includes(query) ||
+    message.email.toLowerCase().includes(query)
   )
 })
 
@@ -156,30 +122,39 @@ const viewMessage = (message) => {
   selectedMessage.value = message
   showMessageModal.value = true
   if (!message.read) {
+    // به‌روزرسانی وضعیت خوانده شدن پیام
     message.read = true
+    const index = messages.value.findIndex(m => m.id === message.id)
+    if (index !== -1) {
+      messages.value[index] = { ...message }
+      localStorage.setItem('userMessages', JSON.stringify(messages.value))
+    }
   }
 }
 
 const replyToMessage = () => {
-  showMessageModal.value = false
-  showReplyModal.value = true
+  if (selectedMessage.value) {
+    const email = selectedMessage.value.email
+    const subject = `پاسخ به پیام شما - ${selectedMessage.value.trackingNumber || ''}`
+    const body = `سلام ${selectedMessage.value.sender} عزیز،\n\n`
+    
+    // ساخت لینک mailto با اطلاعات پیش‌فرض
+    const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    
+    // باز کردن ایمیل کلاینت پیش‌فرض
+    window.location.href = mailtoLink
+    
+    // بستن مودال
+    showMessageModal.value = false
+  }
 }
 
 const deleteMessage = () => {
   if (confirm('آیا از حذف این پیام اطمینان دارید؟')) {
     messages.value = messages.value.filter(m => m.id !== selectedMessage.value.id)
+    localStorage.setItem('userMessages', JSON.stringify(messages.value))
     showMessageModal.value = false
   }
-}
-
-const sendReply = () => {
-  // در واقعیت اینجا درخواست به سرور ارسال می‌شود
-  console.log('پاسخ به پیام:', {
-    messageId: selectedMessage.value.id,
-    content: replyContent.value
-  })
-  showReplyModal.value = false
-  replyContent.value = ''
 }
 </script>
 
@@ -398,11 +373,8 @@ const sendReply = () => {
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
+.form-group, .form-actions {
+  display: none;
 }
 
 @media (max-width: 768px) {

@@ -10,7 +10,7 @@
       </div>
       
       <div class="content-center">
-        <NuxtLink to="/Follow_up" class="golden-btn">
+        <NuxtLink to="/customer/login" class="golden-btn">
           <span class="btn-text">پیگیری درخواست تعمیر</span>
           <svg class="btn-icon" viewBox="0 0 24 24">
             <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" stroke="currentColor" stroke-width="2"/>

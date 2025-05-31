@@ -20,7 +20,10 @@
         </div>
         <div class="col-md-3">
           <label>از تاریخ:</label>
-          <input type="date" class="form-control" v-model="archiveFromDate">
+          <PersianDatePicker
+            v-model="archiveFromDate"
+            placeholder="تاریخ را انتخاب کنید"
+          />
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary" @click="applyArchiveFilters">جستجو</button>
@@ -121,6 +124,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
   layout: 'admin'
@@ -432,5 +436,28 @@ const refreshArchive = () => {
     grid-template-columns: 1fr;
     gap: 5px;
   }
+}
+
+.date-input {
+  position: relative;
+  width: 100%;
+}
+
+.date-input :deep(.persian-date-picker) {
+  width: 100%;
+}
+
+.date-input :deep(.form-control) {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.date-input :deep(.form-control:focus) {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 </style>

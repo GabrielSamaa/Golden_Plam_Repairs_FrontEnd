@@ -191,8 +191,45 @@
       const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
       const repairIndex = repairs.findIndex(r => r.id === Number(route.query.id))
       if (repairIndex !== -1) {
-        repairs[repairIndex].parts = parts.value
-        repairs[repairIndex].totalPartsPrice = totalPrice.value
+        const repair = repairs[repairIndex]
+        repair.parts = parts.value
+        repair.totalPartsPrice = totalPrice.value
+        repair.financialStatus = {
+          totalCost: totalPrice.value,
+          partsCost: totalPrice.value,
+          laborCost: repair.statement - totalPrice.value,
+          lastUpdate: new Date().toLocaleString('fa-IR'),
+          status: 'pending'
+        }
+        
+        // ایجاد رکورد مالی
+        const financialRecords = JSON.parse(localStorage.getItem('financial_records') || '[]')
+        const existingRecordIndex = financialRecords.findIndex(r => r.repairId === Number(route.query.id))
+        
+        const financialRecord = {
+          id: `FIN-${repair.id}`,
+          repairId: repair.id,
+          trackingNumber: repair.trackingNumber,
+          customerName: repair.customerName,
+          deviceType: repair.deviceType,
+          date: repair.date,
+          parts: parts.value,
+          totalPartsCost: totalPrice.value,
+          laborCost: repair.statement - totalPrice.value,
+          totalCost: repair.statement,
+          status: 'pending',
+          type: 'repair',
+          description: `تعمیر ${repair.deviceType} - ${repair.issue}`,
+          lastUpdate: new Date().toLocaleString('fa-IR')
+        }
+
+        if (existingRecordIndex !== -1) {
+          financialRecords[existingRecordIndex] = financialRecord
+        } else {
+          financialRecords.push(financialRecord)
+        }
+
+        localStorage.setItem('financial_records', JSON.stringify(financialRecords))
         localStorage.setItem('receptions', JSON.stringify(repairs))
       }
     }

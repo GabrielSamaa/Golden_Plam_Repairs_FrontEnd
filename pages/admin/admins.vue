@@ -117,6 +117,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 const router = useRouter()
 const showRepairmanForm = ref(false)
 const isEditing = ref(false)

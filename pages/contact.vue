@@ -102,9 +102,35 @@
   })
   
   const submitForm = () => {
-    console.log('فرم ارسال شد:', formData)
+    // ایجاد یک پیام جدید
+    const newMessage = {
+      id: Date.now(), // استفاده از timestamp به عنوان شناسه یکتا
+      sender: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      subject: formData.subject,
+      content: formData.message,
+      date: new Date().toLocaleDateString('fa-IR'),
+      read: false
+    }
+
+    // دریافت پیام‌های موجود از localStorage
+    const existingMessages = JSON.parse(localStorage.getItem('userMessages') || '[]')
+    
+    // اضافه کردن پیام جدید به لیست
+    existingMessages.unshift(newMessage)
+    
+    // ذخیره لیست به‌روز شده در localStorage
+    localStorage.setItem('userMessages', JSON.stringify(existingMessages))
+
+    // پاک کردن فرم
+    formData.name = ''
+    formData.email = ''
+    formData.phone = ''
+    formData.subject = ''
+    formData.message = ''
+
     alert('پیام شما با موفقیت ارسال شد!')
-    // اینجا می‌توانید درخواست API به سرور ارسال کنید
   }
   </script>
   

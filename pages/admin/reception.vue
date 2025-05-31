@@ -26,7 +26,10 @@
         </div>
         <div class="col-md-3">
           <label>از تاریخ:</label>
-          <input type="date" class="form-control" v-model="receptionFromDate">
+          <PersianDatePicker
+            v-model="receptionFromDate"
+            placeholder="تاریخ را انتخاب کنید"
+          />
         </div>
         <div class="col-md-3">
           <button class="btn btn-primary" @click="applyReceptionFilters">جستجو</button>
@@ -72,11 +75,6 @@
               </button>
               <button class="btn btn-sm btn-outline-danger" @click="deleteReception(item.id)">
                 <i class="fas fa-trash"></i>
-              </button>
-              <button v-if="item.status === 'completed'" 
-                      class="btn btn-sm btn-outline-info" 
-                      @click="moveToArchive(item)">
-                <i class="fas fa-archive"></i> ارسال به بایگانی
               </button>
             </td>
           </tr>
@@ -184,6 +182,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import moment from 'moment-jalaali'
+import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
   layout: 'admin'
@@ -210,37 +210,43 @@ onMounted(() => {
     receptions.value = savedReceptions
   } else {
     // Default data if no receptions exist
+    const today = moment().format('jYYYY/jMM/jDD')  
     receptions.value = [
       { 
         id: 1, 
         trackingNumber: 'GP-123456', 
-        date: '1402/05/15', 
+        date: today,
         customerName: 'محمد احمدی', 
         deviceType: 'آیفون 13', 
         issue: 'مشکل باتری', 
         status: 'pending',
         phone: '09123456789',
         category: 'الکترونیکی',
-        statement: 500000
+        statement: 500000,
+        receptionDate: today,
+        deliveryDate: ''
       },
       { 
         id: 2, 
         trackingNumber: 'GP-123457', 
-        date: '1402/05/16', 
+        date: today,
         customerName: 'فاطمه محمدی', 
         deviceType: 'لپ‌تاپ دل', 
         issue: 'مشکل صفحه نمایش', 
         status: 'in-progress',
         phone: '09123456790',
         category: 'سخت‌افزاری',
-        statement: 1500000
+        statement: 1500000,
+        receptionDate: today,
+        deliveryDate: ''
       }
     ]
   }
 })
 
 const filteredReceptions = computed(() => {
-  let result = receptions.value
+  let result = receptions.value.filter(r => r.status !== 'completed')
+  
   if (receptionStatus.value !== 'all') {
     result = result.filter(r => r.status === receptionStatus.value)
   }
@@ -257,7 +263,8 @@ const getStatusText = (status) => {
   const statusMap = {
     'pending': 'در انتظار بررسی',
     'in-progress': 'در حال انجام',
-    'completed': 'تکمیل شده'
+    'completed': 'تکمیل شده',
+    'delivered': 'تکمیل شده'
   }
   return statusMap[status] || status
 }
@@ -305,70 +312,30 @@ const deleteReception = (id) => {
 }
 
 const submitReceptionForm = () => {
-  // در واقعیت اینجا درخواست به سرور ارسال می‌شود
-  console.log('فرم پذیرش:', receptionForm.value)
+  const today = moment().format('jYYYY/jMM/jDD')
+  const newReception = {
+    id: Date.now(),
+    trackingNumber: `GP-${Math.floor(Math.random() * 1000000)}`,
+    date: today,
+    customerName: receptionForm.value.customerName,
+    deviceType: receptionForm.value.deviceType,
+    issue: receptionForm.value.issue,
+    status: 'pending',
+    phone: receptionForm.value.phone,
+    category: receptionForm.value.category,
+    statement: receptionForm.value.statement || 0,
+    receptionDate: today,
+    deliveryDate: ''
+  }
+
+  receptions.value.unshift(newReception)
+  localStorage.setItem('receptions', JSON.stringify(receptions.value))
   showReceptionForm.value = false
   receptionForm.value = {
     customerName: '',
     phone: '',
     deviceType: '',
     issue: ''
-  }
-}
-
-const moveToArchive = (reception) => {
-  if (reception.status === 'completed') {
-    try {
-      // Get existing archive items
-      const archiveItems = JSON.parse(localStorage.getItem('archiveItems') || '[]')
-      
-      // Create archive item with all necessary data
-      const archiveItem = {
-        id: reception.id,
-        trackingNumber: reception.trackingNumber,
-        date: reception.date,
-        customerName: reception.customerName,
-        deviceType: reception.deviceType,
-        category: reception.category,
-        issue: reception.issue,
-        status: 'completed',
-        phone: reception.phone,
-        statement: reception.statement,
-        repairmanId: reception.repairmanId,
-        archiveDate: new Date().toLocaleDateString('fa-IR'),
-        parts: reception.parts || []
-      }
-      
-      // Add to archive
-      archiveItems.unshift(archiveItem)
-      
-      // Save to localStorage
-      localStorage.setItem('archiveItems', JSON.stringify(archiveItems))
-      console.log('Saved to archive:', archiveItem)
-      
-      // Remove from receptions
-      const updatedReceptions = receptions.value.filter(r => r.id !== reception.id)
-      receptions.value = updatedReceptions
-      localStorage.setItem('receptions', JSON.stringify(updatedReceptions))
-      console.log('Removed from receptions:', reception.id)
-    } catch (error) {
-      console.error('Error moving to archive:', error)
-    }
-  }
-}
-
-const completeRepair = (id) => {
-  const reception = receptions.value.find(r => r.id === id)
-  if (reception) {
-    reception.status = 'completed'
-    closeCardModal()
-  }
-}
-
-const handleCompleteRepair = () => {
-  if (selectedReception.value) {
-    selectedReception.value.status = 'completed'
-    closeCardModal()
   }
 }
 </script>

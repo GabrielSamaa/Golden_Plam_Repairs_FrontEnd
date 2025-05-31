@@ -73,6 +73,22 @@
           </div>
 
           <div class="form-group">
+            <label for="receptionDate">تاریخ پذیرش</label>
+            <PersianDatePicker
+              v-model="form.receptionDate"
+              placeholder="تاریخ پذیرش را انتخاب کنید"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryDate">تاریخ تحویل پیش‌بینی شده</label>
+            <PersianDatePicker
+              v-model="form.deliveryDate"
+              placeholder="تاریخ تحویل را انتخاب کنید"
+            />
+          </div>
+
+          <div class="form-group">
             <label for="statement">بیانه</label>
             <div class="statement-input">
               <button type="button" class="btn btn-outline-secondary" @click="decreaseStatement">
@@ -135,6 +151,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
+import moment from 'moment-jalaali'
+import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
   layout: 'admin'
@@ -150,6 +168,8 @@ const form = ref({
   statement: 0,
   description: "",
   repairmanId: "",
+  receptionDate: moment().format('jYYYY/jMM/jDD'),
+  deliveryDate: moment().add(3, 'days').format('jYYYY/jMM/jDD'),
 })
 
 // Add editingReceptionId ref
@@ -165,6 +185,7 @@ onMounted(() => {
   
   const editingReception = JSON.parse(localStorage.getItem('editingReception') || 'null')
   if (editingReception) {
+    console.log('Debug - Loading editing reception:', editingReception)
     form.value = {
       fullName: editingReception.customerName,
       phone: editingReception.phone,
@@ -173,9 +194,23 @@ onMounted(() => {
       statement: editingReception.statement,
       description: editingReception.issue,
       repairmanId: editingReception.repairmanId || "",
+      receptionDate: editingReception.receptionDate || moment().format('jYYYY/jMM/jDD'),
+      deliveryDate: editingReception.deliveryDate || "",
     }
     editingReceptionId.value = editingReception.id
   }
+
+  // بررسی وضعیت کلی localStorage
+  const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+  console.log('Debug - Current localStorage state:', {
+    receptionsCount: receptions.length,
+    receptions: receptions.map(r => ({
+      id: r.id,
+      trackingNumber: r.trackingNumber,
+      phone: r.phone,
+      customerName: r.customerName
+    }))
+  })
 })
 
 const increaseStatement = () => {
@@ -197,22 +232,43 @@ const onStatementInput = (val) => {
 }
 
 const submitForm = () => {
+  // نرمال‌سازی شماره تلفن قبل از ذخیره
+  const normalizedPhone = form.value.phone.toString().trim().replace(/[^0-9]/g, '')
+  if (!normalizedPhone.startsWith('09')) {
+    alert('شماره تلفن باید با ۰۹ شروع شود')
+    return
+  }
+
+  console.log('Debug - Submitting form:', {
+    formData: {
+      ...form.value,
+      phone: normalizedPhone
+    },
+    editingReceptionId: editingReceptionId.value
+  })
+
   if (editingReceptionId.value) {
     // Update existing reception
     const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
     const index = receptions.findIndex(r => r.id === editingReceptionId.value)
     
     if (index !== -1) {
-      receptions[index] = {
+      const updatedReception = {
         ...receptions[index],
         customerName: form.value.fullName,
-        phone: form.value.phone,
+        phone: normalizedPhone,
         deviceType: form.value.deviceName,
         category: form.value.category,
         statement: form.value.statement,
         issue: form.value.description,
         repairmanId: form.value.repairmanId,
+        receptionDate: form.value.receptionDate,
+        deliveryDate: form.value.deliveryDate,
+        date: form.value.receptionDate
       }
+      
+      receptions[index] = updatedReception
+      console.log('Debug - Updating reception:', updatedReception)
       
       localStorage.setItem('receptions', JSON.stringify(receptions))
       localStorage.removeItem('editingReception')
@@ -224,20 +280,32 @@ const submitForm = () => {
     const newReception = {
       id: Date.now(),
       trackingNumber: `GP-${Math.floor(Math.random() * 1000000)}`,
-      date: new Date().toLocaleDateString('fa-IR'),
+      date: form.value.receptionDate,
       customerName: form.value.fullName,
       deviceType: form.value.deviceName,
       issue: form.value.description,
       status: 'pending',
-      phone: form.value.phone,
+      phone: normalizedPhone,
       category: form.value.category,
       statement: form.value.statement,
       repairmanId: form.value.repairmanId,
+      receptionDate: form.value.receptionDate,
+      deliveryDate: form.value.deliveryDate,
     }
+
+    console.log('Debug - Creating new reception:', newReception)
 
     const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
     receptions.unshift(newReception)
     localStorage.setItem('receptions', JSON.stringify(receptions))
+    
+    // بررسی نهایی داده‌های ذخیره شده
+    const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    console.log('Debug - Saved receptions:', {
+      count: savedReceptions.length,
+      latest: savedReceptions[0]
+    })
+    
     alert("فرم با موفقیت ثبت شد!")
     navigateTo('/admin/reception')
   }
@@ -252,6 +320,8 @@ const resetForm = () => {
     statement: 0,
     description: "",
     repairmanId: "",
+    receptionDate: moment().format('jYYYY/jMM/jDD'),
+    deliveryDate: moment().add(3, 'days').format('jYYYY/jMM/jDD'),
   }
   editingReceptionId.value = null
   localStorage.removeItem('editingReception')

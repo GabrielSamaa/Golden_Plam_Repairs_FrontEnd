@@ -7,7 +7,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "start": "node server.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
@@ -20,10 +21,27 @@
     "bootstrap": "^5.3.6",
     "date-fns": "^4.1.0",
     "jalaali-js": "^1.2.8",
+    "json-server": "^1.0.0-beta.3",
+    "moment-jalaali": "^0.10.4",
     "nuxt": "^3.17.2",
     "sass": "^1.88.0",
     "vazir-font": "^30.1.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.1"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.",
+  "main": "router.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GabrielSamaa/Golden_Plam_Repairs_FrontEnd.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GabrielSamaa/Golden_Plam_Repairs_FrontEnd/issues"
+  },
+  "homepage": "https://github.com/GabrielSamaa/Golden_Plam_Repairs_FrontEnd#readme"
 }

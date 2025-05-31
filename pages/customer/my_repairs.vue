@@ -1,7 +1,7 @@
 <template>
   <div class="repairs-page">
     <div class="page-header">
-      <h2>لیست تعمیرات</h2>
+      <h2>تعمیرات من</h2>
       <div class="filters">
         <div class="search-box">
           <input 
@@ -25,17 +25,15 @@
         v-for="repair in filteredRepairs" 
         :key="repair.id" 
         class="repair-card"
-        @click="openRepairDetails(repair)"
+        @click="viewRepairDetails(repair)"
       >
         <div class="card-header">
           <span class="tracking-number">{{ repair.trackingNumber }}</span>
-          <span :class="['status-badge', repair.status]">{{ getStatusText(repair.status) }}</span>
+          <span :class="['status-badge', repair.readyForDelivery ? 'ready-for-delivery' : repair.status]">
+            {{ repair.readyForDelivery ? 'آماده تحویل' : getStatusText(repair.status) }}
+          </span>
         </div>
         <div class="card-body">
-          <div class="info-row">
-            <i class="fas fa-user"></i>
-            <span>{{ repair.customerName }}</span>
-          </div>
           <div class="info-row">
             <i class="fas fa-mobile-alt"></i>
             <span>{{ repair.deviceType }}</span>
@@ -53,7 +51,7 @@
           <div class="date-info">
             <div class="date-item">
               <i class="fas fa-calendar-plus"></i>
-              <span>تاریخ پذیرش: {{ repair.receptionDate || repair.date || 'نامشخص' }}</span>
+              <span>تاریخ پذیرش: {{ repair.receptionDate || repair.date }}</span>
             </div>
             <div class="date-item" v-if="repair.deliveryDate">
               <i class="fas fa-calendar-check"></i>
@@ -123,22 +121,11 @@
             <p class="description">{{ selectedRepair.issue }}</p>
           </div>
 
-          <div class="modal-actions">
-            <button class="btn btn-primary" @click="startRepair" v-if="selectedRepair.status === 'pending'">
-              <i class="fas fa-tools"></i>
-              شروع تعمیر
-            </button>
-            <button class="btn btn-info" @click="continueRepair" v-if="selectedRepair.status === 'in-progress'">
-              <i class="fas fa-wrench"></i>
-              ادامه تعمیر
-            </button>
-            <button class="btn btn-success" @click="completeRepair" v-if="selectedRepair.status === 'in-progress'">
-              <i class="fas fa-check"></i>
-              تکمیل تعمیر
-            </button>
-            <button class="btn btn-warning" @click="revertToInProgress" v-if="selectedRepair.status === 'completed'">
-              <i class="fas fa-undo"></i>
-              بازگشت به حالت در حال انجام
+          <!-- دکمه مشاهده جزئیات کامل -->
+          <div class="detail-actions">
+            <button class="btn btn-primary" @click="viewFullDetails">
+              <i class="fas fa-external-link-alt me-2"></i>
+              مشاهده جزئیات کامل
             </button>
           </div>
         </div>
@@ -149,103 +136,54 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { navigateTo, useRouter } from 'nuxt/app'
+import { useRouter, useRoute } from 'vue-router'
 
+const router = useRouter()
+const route = useRoute()
 const repairs = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('all')
 const showModal = ref(false)
 const selectedRepair = ref(null)
-const currentRepairman = ref(null)
-const router = useRouter()
 
 // Load repairs from localStorage
 onMounted(() => {
-  // Get current repairman from localStorage
-  const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
-  const currentRepairmanId = localStorage.getItem('currentRepairmanId')
-  
-  if (currentRepairmanId) {
-    currentRepairman.value = repairmen.find(r => r.id === Number(currentRepairmanId))
-    
-    if (currentRepairman.value) {
-      // Load repairs and filter by current repairman
-      const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      repairs.value = savedRepairs.filter(repair => repair.repairmanId === currentRepairman.value.id)
-    } else {
-      // If repairman not found, redirect to login
-      router.push('/login')
-    }
-  } else {
-    // If no repairman is logged in, redirect to login
-    router.push('/login')
+  const customerPhone = route.query.phone
+  if (!customerPhone) {
+    router.push('/customer/login')
+    return
+  }
+
+  const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
+  repairs.value = savedRepairs.filter(repair => {
+    const storedPhone = repair.phone.toString().trim()
+    const normalizedStored = storedPhone.replace(/^09/, '')
+    const normalizedInput = customerPhone.replace(/^09/, '')
+    return normalizedStored === normalizedInput
+  })
+
+  if (repairs.value.length === 0) {
+    router.push('/customer/login')
   }
 })
 
 const filteredRepairs = computed(() => {
-  try {
-    let result = repairs.value.filter(repair => {
-      const matchesSearch = 
-        repair.customerName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        repair.trackingNumber.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        repair.deviceType.toLowerCase().includes(searchQuery.value.toLowerCase())
-      
-      const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
-      
-      return matchesSearch && matchesStatus
-    })
-
-    // Sort repairs based on status and delivery date
-    return result.sort((a, b) => {
-      try {
-        // First priority: status (pending > in-progress > completed)
-        const statusOrder = { 'pending': 0, 'in-progress': 1, 'completed': 2 }
-        if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status]
-        }
-
-        // Helper function to convert date string to comparable format
-        const convertDate = (dateStr) => {
-          if (!dateStr) return '99999999' // Far future date for sorting
-          try {
-            // Handle both receptionDate and deliveryDate formats
-            const parts = dateStr.split('/')
-            if (parts.length === 3) {
-              // Ensure all parts are numbers and pad with zeros if needed
-              return parts.map(part => part.padStart(2, '0')).join('')
-            }
-            return '99999999'
-          } catch {
-            return '99999999'
-          }
-        }
-
-        // Second priority: delivery date proximity
-        const dateA = convertDate(a.deliveryDate)
-        const dateB = convertDate(b.deliveryDate)
-        
-        // If both have delivery dates, compare them
-        if (dateA !== '99999999' && dateB !== '99999999') {
-          return dateA.localeCompare(dateB)
-        }
-
-        // If only one has delivery date, prioritize it
-        if (dateA !== '99999999') return -1
-        if (dateB !== '99999999') return 1
-
-        // If neither has delivery date, sort by reception date
-        const receptionDateA = convertDate(a.receptionDate || a.date)
-        const receptionDateB = convertDate(b.receptionDate || b.date)
-        return receptionDateA.localeCompare(receptionDateB)
-      } catch (error) {
-        console.error('Error sorting repairs:', error)
-        return 0 // Keep original order if sorting fails
-      }
-    })
-  } catch (error) {
-    console.error('Error filtering repairs:', error)
-    return repairs.value // Return original array if filtering fails
-  }
+  return repairs.value.filter(repair => {
+    const matchesSearch = 
+      repair.trackingNumber.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      repair.deviceType.toLowerCase().includes(searchQuery.value.toLowerCase())
+    
+    const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
+    
+    return matchesSearch && matchesStatus
+  }).sort((a, b) => {
+    // Sort by status and date
+    const statusOrder = { 'pending': 0, 'in-progress': 1, 'completed': 2 }
+    if (statusOrder[a.status] !== statusOrder[b.status]) {
+      return statusOrder[a.status] - statusOrder[b.status]
+    }
+    return (b.date || '').localeCompare(a.date || '')
+  })
 })
 
 const getStatusText = (status) => {
@@ -253,12 +191,12 @@ const getStatusText = (status) => {
     'pending': 'در انتظار بررسی',
     'in-progress': 'در حال انجام',
     'completed': 'تکمیل شده',
-    'delivered': 'تکمیل شده'
+    'ready-for-delivery': 'آماده تحویل'
   }
   return statusMap[status] || status
 }
 
-const openRepairDetails = (repair) => {
+const viewRepairDetails = (repair) => {
   selectedRepair.value = repair
   showModal.value = true
 }
@@ -268,68 +206,9 @@ const closeModal = () => {
   selectedRepair.value = null
 }
 
-const updateStatus = (newStatus) => {
+const viewFullDetails = () => {
   if (selectedRepair.value) {
-    selectedRepair.value.status = newStatus
-    // Update in localStorage
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
-    }
-  }
-}
-
-const startRepair = () => {
-  if (selectedRepair.value) {
-    selectedRepair.value.status = 'in-progress'
-    // Update in localStorage
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
-    }
-    // Navigate to start_repairs page
-    navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`)
-  }
-}
-
-const continueRepair = () => {
-  if (selectedRepair.value) {
-    // Navigate to start_repairs page with the repair ID
-    navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`)
-  }
-}
-
-const completeRepair = () => {
-  if (selectedRepair.value) {
-    // Check if parts are saved
-    const savedParts = localStorage.getItem(`repair_parts_${selectedRepair.value.id}`)
-    if (!savedParts) {
-      alert('لطفاً ابتدا قطعات تعمیر را ثبت کنید')
-      return
-    }
-
-    // Update status to completed
-    selectedRepair.value.status = 'completed'
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
-    }
-    closeModal()
-  }
-}
-
-const revertToInProgress = () => {
-  if (selectedRepair.value) {
-    selectedRepair.value.status = 'in-progress'
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
-    }
-    closeModal()
+    router.push(`/Follow_up?tracking=${selectedRepair.value.trackingNumber}`)
   }
 }
 </script>
@@ -395,7 +274,10 @@ const revertToInProgress = () => {
 .status-badge.pending { background: #fff3cd; color: #856404; }
 .status-badge.in-progress { background: #cce5ff; color: #004085; }
 .status-badge.completed { background: #d4edda; color: #155724; }
-.status-badge.delivered { background: #d4edda; color: #155724; }
+.status-badge.ready-for-delivery { 
+  background: #e8f5e9; 
+  color: #2e7d32; 
+}
 
 .card-body {
   padding: 15px;
@@ -417,8 +299,6 @@ const revertToInProgress = () => {
 .card-footer {
   padding: 10px 15px;
   border-top: 1px solid #eee;
-  color: #7f8c8d;
-  font-size: 0.9rem;
 }
 
 .date-info {
@@ -530,22 +410,28 @@ const revertToInProgress = () => {
   line-height: 1.6;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+.search-tabs, .search-tab {
+  display: none;
+}
+
+.detail-actions {
   margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
 }
 
 .btn {
-  padding: 8px 15px;
-  border-radius: 4px;
+  padding: 10px 20px;
   border: none;
+  border-radius: 4px;
   cursor: pointer;
+  transition: all 0.3s;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.3s;
+  gap: 8px;
+  font-weight: 500;
 }
 
 .btn-primary {
@@ -555,33 +441,7 @@ const revertToInProgress = () => {
 
 .btn-primary:hover {
   background: #2980b9;
-}
-
-.btn-success {
-  background: #2ecc71;
-  color: white;
-}
-
-.btn-success:hover {
-  background: #27ae60;
-}
-
-.btn-info {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-info:hover {
-  background: #138496;
-}
-
-.btn-warning {
-  background: #f1c40f;
-  color: #2c3e50;
-}
-
-.btn-warning:hover {
-  background: #f39c12;
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
@@ -605,10 +465,5 @@ const revertToInProgress = () => {
   .detail-grid {
     grid-template-columns: 1fr;
   }
-  
-  .date-info {
-    font-size: 0.8rem;
-  }
 }
-</style>
-
+</style> 

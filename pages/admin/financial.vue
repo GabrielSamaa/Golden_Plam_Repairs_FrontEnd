@@ -8,16 +8,23 @@
       <div class="row">
         <div class="col-md-3">
           <label>از تاریخ:</label>
-          <input type="date" class="form-control" v-model="fromDate">
+          <PersianDatePicker
+            v-model="fromDate"
+            placeholder="تاریخ را انتخاب کنید"
+          />
         </div>
         <div class="col-md-3">
           <label>تا تاریخ:</label>
-          <input type="date" class="form-control" v-model="toDate">
+          <PersianDatePicker
+            v-model="toDate"
+            placeholder="تاریخ را انتخاب کنید"
+          />
         </div>
         <div class="col-md-3">
           <label>نوع تراکنش:</label>
           <select class="form-control" v-model="transactionType">
             <option value="all">همه</option>
+            <option value="repair">تعمیرات</option>
             <option value="income">درآمد</option>
             <option value="expense">هزینه</option>
           </select>
@@ -30,19 +37,25 @@
 
     <div class="summary-section">
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="summary-card income">
             <h3>کل درآمد</h3>
             <p class="amount">{{ formatCurrency(totalIncome) }}</p>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <div class="summary-card expense">
-            <h3>کل هزینه</h3>
-            <p class="amount">{{ formatCurrency(totalExpense) }}</p>
+            <h3>کل هزینه قطعات</h3>
+            <p class="amount">{{ formatCurrency(totalPartsCost) }}</p>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
+          <div class="summary-card labor">
+            <h3>دستمزد تعمیرات</h3>
+            <p class="amount">{{ formatCurrency(totalLaborCost) }}</p>
+          </div>
+        </div>
+        <div class="col-md-3">
           <div class="summary-card profit">
             <h3>سود خالص</h3>
             <p class="amount">{{ formatCurrency(netProfit) }}</p>
@@ -59,31 +72,122 @@
             <tr>
               <th>شماره پیگیری</th>
               <th>تاریخ</th>
-              <th>توضیحات</th>
-              <th>مبلغ</th>
-              <th>نوع</th>
+              <th>مشتری</th>
+              <th>دستگاه</th>
+              <th>هزینه قطعات</th>
+              <th>دستمزد</th>
+              <th>جمع کل</th>
               <th>وضعیت</th>
+              <th>عملیات</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="transaction in filteredTransactions" :key="transaction.id">
-              <td>{{ transaction.trackingNumber }}</td>
-              <td>{{ transaction.date }}</td>
-              <td>{{ transaction.description }}</td>
-              <td>{{ formatCurrency(transaction.amount) }}</td>
+            <tr v-for="record in filteredRecords" :key="record.id">
+              <td>{{ record.trackingNumber }}</td>
+              <td>{{ record.date }}</td>
+              <td>{{ record.customerName }}</td>
+              <td>{{ record.deviceType }}</td>
+              <td>{{ formatCurrency(record.totalPartsCost) }}</td>
+              <td>{{ formatCurrency(record.laborCost) }}</td>
+              <td>{{ formatCurrency(record.totalCost) }}</td>
               <td>
-                <span :class="'type-' + transaction.type">
-                  {{ getTransactionTypeText(transaction.type) }}
+                <span :class="'status-' + record.status">
+                  {{ getStatusText(record.status) }}
                 </span>
               </td>
               <td>
-                <span :class="'status-' + transaction.status">
-                  {{ getTransactionStatusText(transaction.status) }}
-                </span>
+                <button 
+                  class="btn btn-sm btn-info" 
+                  @click="viewDetails(record)"
+                  title="مشاهده جزئیات"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Modal for viewing details -->
+    <div class="modal" :class="{ show: showDetailsModal }" @click.self="closeDetailsModal">
+      <div class="modal-content" v-if="selectedRecord">
+        <div class="modal-header">
+          <h3>جزئیات مالی تعمیر</h3>
+          <button class="close-btn" @click="closeDetailsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-section">
+            <h4>اطلاعات مشتری</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>شماره پیگیری:</label>
+                <span>{{ selectedRecord.trackingNumber }}</span>
+              </div>
+              <div class="detail-item">
+                <label>نام مشتری:</label>
+                <span>{{ selectedRecord.customerName }}</span>
+              </div>
+              <div class="detail-item">
+                <label>دستگاه:</label>
+                <span>{{ selectedRecord.deviceType }}</span>
+              </div>
+              <div class="detail-item">
+                <label>تاریخ:</label>
+                <span>{{ selectedRecord.date }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>جزئیات هزینه‌ها</h4>
+            <div class="parts-list">
+              <div class="parts-header">
+                <span>نام قطعه</span>
+                <span>قیمت</span>
+              </div>
+              <div v-for="part in selectedRecord.parts" :key="part.name" class="part-item">
+                <span>{{ part.name }}</span>
+                <span>{{ formatCurrency(part.price) }}</span>
+              </div>
+              <div class="parts-summary">
+                <div class="summary-item">
+                  <label>مبلغ بیانه:</label>
+                  <span>{{ formatCurrency(selectedRecord.initialStatement) }}</span>
+                </div>
+                <div class="summary-item expense">
+                  <label>هزینه قطعات:</label>
+                  <span>{{ formatCurrency(selectedRecord.totalPartsCost) }}</span>
+                </div>
+                <div class="summary-item">
+                  <label>دستمزد تعمیر:</label>
+                  <div class="labor-cost-input">
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      v-model="selectedRecord.laborCost"
+                      @input="updateLaborCost"
+                      placeholder="دستمزد تعمیر را وارد کنید"
+                    >
+                    <button 
+                      class="btn btn-sm btn-success" 
+                      @click="saveLaborCost"
+                      :disabled="!isLaborCostChanged"
+                    >
+                      <i class="fas fa-save"></i>
+                      ذخیره
+                    </button>
+                  </div>
+                </div>
+                <div class="summary-item total">
+                  <label>مبلغ قابل پرداخت:</label>
+                  <span class="final-amount">{{ formatCurrency(finalPayment) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -91,6 +195,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
   layout: 'admin'
@@ -99,57 +204,22 @@ definePageMeta({
 const fromDate = ref('')
 const toDate = ref('')
 const transactionType = ref('all')
+const showDetailsModal = ref(false)
+const selectedRecord = ref(null)
 
-const transactions = ref([])
+const financialRecords = ref([])
 
-// Load transactions from repairs data
+const isLaborCostChanged = ref(false)
+const originalLaborCost = ref(0)
+
+// Load financial records
 onMounted(() => {
-  const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-  const allTransactions = []
-
-  repairs.forEach(repair => {
-    // Only process non-completed repairs
-    if (repair.status !== 'completed') {
-      // Add income from repair statement
-      if (repair.statement) {
-        allTransactions.push({
-          id: `INC-${repair.id}`,
-          date: repair.date,
-          description: `درآمد از تعمیر ${repair.deviceType} - ${repair.customerName}`,
-          amount: repair.statement,
-          type: 'income',
-          status: repair.status,
-          repairId: repair.id,
-          trackingNumber: repair.trackingNumber
-        })
-      }
-
-      // Add expenses from repair parts
-      if (repair.parts && repair.parts.length > 0) {
-        repair.parts.forEach((part, index) => {
-          allTransactions.push({
-            id: `EXP-${repair.id}-${index}`,
-            date: repair.date,
-            description: `هزینه قطعه ${part.name} برای تعمیر ${repair.deviceType}`,
-            amount: part.price,
-            type: 'expense',
-            status: repair.status,
-            repairId: repair.id,
-            trackingNumber: repair.trackingNumber
-          })
-        })
-      }
-    }
-  })
-
-  // Sort transactions by date (newest first)
-  transactions.value = allTransactions.sort((a, b) => {
-    return new Date(b.date) - new Date(a.date)
-  })
+  const records = JSON.parse(localStorage.getItem('financial_records') || '[]')
+  financialRecords.value = records.sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 
-const filteredTransactions = computed(() => {
-  let result = transactions.value
+const filteredRecords = computed(() => {
+  let result = financialRecords.value
 
   // Filter by transaction type
   if (transactionType.value !== 'all') {
@@ -168,41 +238,102 @@ const filteredTransactions = computed(() => {
 })
 
 const totalIncome = computed(() => {
-  return transactions.value
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0)
+  return financialRecords.value.reduce((sum, r) => sum + r.totalCost, 0)
 })
 
-const totalExpense = computed(() => {
-  return transactions.value
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0)
+const totalPartsCost = computed(() => {
+  return financialRecords.value.reduce((sum, r) => sum + r.totalPartsCost, 0)
+})
+
+const totalLaborCost = computed(() => {
+  return financialRecords.value.reduce((sum, r) => sum + r.laborCost, 0)
 })
 
 const netProfit = computed(() => {
-  return totalIncome.value - totalExpense.value
+  return totalLaborCost.value
 })
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان'
 }
 
-const getTransactionTypeText = (type) => {
-  const typeMap = {
-    'income': 'درآمد',
-    'expense': 'هزینه'
-  }
-  return typeMap[type] || type
-}
-
-const getTransactionStatusText = (status) => {
+const getStatusText = (status) => {
   const statusMap = {
-    'completed': 'تکمیل شده',
     'pending': 'در انتظار',
-    'failed': 'ناموفق'
+    'completed': 'تکمیل شده',
+    'cancelled': 'لغو شده'
   }
   return statusMap[status] || status
 }
+
+const viewDetails = (record) => {
+  selectedRecord.value = { ...record }
+  originalLaborCost.value = record.laborCost
+  isLaborCostChanged.value = false
+  showDetailsModal.value = true
+}
+
+const closeDetailsModal = () => {
+  showDetailsModal.value = false
+  selectedRecord.value = null
+}
+
+const updateLaborCost = () => {
+  if (selectedRecord.value) {
+    // حفظ مبلغ اولیه
+    if (!selectedRecord.value.initialStatement) {
+      selectedRecord.value.initialStatement = selectedRecord.value.totalCost
+    }
+    isLaborCostChanged.value = selectedRecord.value.laborCost !== originalLaborCost.value
+  }
+}
+
+const saveLaborCost = () => {
+  if (!selectedRecord.value) return
+
+  // به‌روزرسانی در آرایه محلی
+  const index = financialRecords.value.findIndex(r => r.id === selectedRecord.value.id)
+  if (index !== -1) {
+    financialRecords.value[index] = { ...selectedRecord.value }
+  }
+
+  // به‌روزرسانی در localStorage
+  const allRecords = JSON.parse(localStorage.getItem('financial_records') || '[]')
+  const globalIndex = allRecords.findIndex(r => r.id === selectedRecord.value.id)
+  if (globalIndex !== -1) {
+    allRecords[globalIndex] = { ...selectedRecord.value }
+    localStorage.setItem('financial_records', JSON.stringify(allRecords))
+  }
+
+  // به‌روزرسانی در رکورد تعمیر
+  const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
+  const repairIndex = repairs.findIndex(r => r.id === selectedRecord.value.repairId)
+  if (repairIndex !== -1) {
+    const repair = repairs[repairIndex]
+    repair.financialStatus = {
+      ...repair.financialStatus,
+      initialStatement: selectedRecord.value.initialStatement,
+      laborCost: Number(selectedRecord.value.laborCost),
+      totalPartsCost: selectedRecord.value.totalPartsCost,
+      finalPayment: finalPayment.value,
+      lastUpdate: new Date().toLocaleString('fa-IR')
+    }
+    localStorage.setItem('receptions', JSON.stringify(repairs))
+  }
+
+  isLaborCostChanged.value = false
+  originalLaborCost.value = selectedRecord.value.laborCost
+  alert('اطلاعات مالی با موفقیت به‌روز شد')
+}
+
+// محاسبه مبلغ نهایی قابل پرداخت
+const finalPayment = computed(() => {
+  if (!selectedRecord.value) return 0
+  const initial = selectedRecord.value.initialStatement || selectedRecord.value.totalCost
+  const partsCost = selectedRecord.value.totalPartsCost || 0
+  const laborCost = Number(selectedRecord.value.laborCost) || 0
+  return initial - partsCost - laborCost
+})
 
 const applyFilters = () => {
   // در واقعیت اینجا درخواست به سرور ارسال می‌شود
@@ -211,43 +342,6 @@ const applyFilters = () => {
     toDate: toDate.value,
     type: transactionType.value
   })
-}
-
-// Add function to move completed repairs to archive
-const moveToArchive = (repairId) => {
-  const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-  const repairIndex = repairs.findIndex(r => r.id === repairId)
-  
-  if (repairIndex !== -1) {
-    const repair = repairs[repairIndex]
-    repair.status = 'completed'
-    
-    // Get existing archive items
-    const archiveItems = JSON.parse(localStorage.getItem('archiveItems') || '[]')
-    
-    // Add to archive
-    archiveItems.push({
-      id: repair.id,
-      trackingNumber: repair.trackingNumber,
-      date: repair.date,
-      customerName: repair.customerName,
-      deviceType: repair.deviceType,
-      issue: repair.issue,
-      status: 'completed',
-      parts: repair.parts,
-      statement: repair.statement
-    })
-    
-    // Save updated archive
-    localStorage.setItem('archiveItems', JSON.stringify(archiveItems))
-    
-    // Remove from active repairs
-    repairs.splice(repairIndex, 1)
-    localStorage.setItem('receptions', JSON.stringify(repairs))
-    
-    // Refresh transactions
-    onMounted()
-  }
 }
 </script>
 
@@ -433,5 +527,209 @@ const moveToArchive = (repairId) => {
   .table td {
     padding: 8px;
   }
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #7f8c8d;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.detail-section {
+  margin-bottom: 30px;
+}
+
+.detail-section h4 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.detail-item label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.parts-list {
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.parts-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 12px;
+  background: #e9ecef;
+  font-weight: 500;
+}
+
+.part-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.parts-summary {
+  padding: 15px;
+  background: #fff;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.summary-item.total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #dee2e6;
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.status-pending { color: #f39c12; }
+.status-completed { color: #2ecc71; }
+.status-cancelled { color: #e74c3c; }
+
+.summary-card.labor .amount {
+  color: #9b59b6;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .parts-header,
+  .part-item {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}
+
+.labor-cost-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.labor-cost-input input {
+  width: 200px;
+  text-align: left;
+  direction: ltr;
+}
+
+.labor-cost-input .btn {
+  white-space: nowrap;
+}
+
+.labor-cost-input .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.summary-item.expense {
+  color: #e74c3c;
+}
+
+.summary-item.expense span {
+  color: #e74c3c;
+}
+
+.final-amount {
+  color: #2ecc71;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.date-input {
+  position: relative;
+  width: 100%;
+}
+
+.date-input :deep(.persian-date-picker) {
+  width: 100%;
+}
+
+.date-input :deep(.form-control) {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.date-input :deep(.form-control:focus) {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 </style>

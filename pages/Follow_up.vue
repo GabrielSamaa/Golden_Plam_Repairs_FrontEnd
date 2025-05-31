@@ -63,6 +63,21 @@
               </div>
             </div>
   
+            <!-- بخش اطلاعات زمان‌بندی -->
+            <div class="mb-4">
+              <h2 class="h5 mb-3 text-primary">اطلاعات زمان‌بندی</h2>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">تاریخ پذیرش:</label>
+                  <div class="form-control bg-light">{{ repairData.receptionDate }}</div>
+                </div>
+                <div class="col-md-6 mb-3" v-if="repairData.deliveryDate">
+                  <label class="form-label">تاریخ تحویل پیش‌بینی شده:</label>
+                  <div class="form-control bg-light">{{ repairData.deliveryDate }}</div>
+                </div>
+              </div>
+            </div>
+  
             <!-- دکمه‌های اقدام -->
             <div class="d-flex justify-content-between mt-4">
               <button class="btn btn-outline-secondary" @click="printPage">
@@ -81,7 +96,13 @@
   
   <script setup>
   import Footer from '~/components/ّFooter.vue'
+  import Header from '~/components/Header.vue'
   import { ref, computed, onMounted } from 'vue'
+  import { useRoute, useRouter } from 'vue-router'
+  
+  const route = useRoute()
+  const router = useRouter()
+  const trackingId = ref(route.query.tracking || '')
   
   // اطلاعات فرم را از localStorage می‌خوانیم
   const repairData = ref({
@@ -90,26 +111,92 @@
     deviceName: '',
     category: '',
     statement: 0,
-    description: ''
+    description: '',
+    status: '',
+    receptionDate: '',
+    deliveryDate: '',
+    repairmanId: '',
+    trackingNumber: '',
+    readyForDelivery: false
   })
   
   // وضعیت‌های تعمیرات
   const statuses = ref([
-    { title: 'ثبت درخواست', date: 'امروز - ۱۴:۳۰', completed: true, active: false, note: 'درخواست شما با موفقیت ثبت شد' },
-    { title: 'بررسی اولیه', date: 'فردا - ۹:۰۰', completed: false, active: true, note: 'در حال بررسی توسط کارشناس' },
-    { title: 'تخمین هزینه', date: '', completed: false, active: false },
-    { title: 'تعمیرات', date: '', completed: false, active: false },
-    { title: 'تست نهایی', date: '', completed: false, active: false },
-    { title: 'آماده تحویل', date: '', completed: false, active: false }
+    { title: 'ثبت درخواست', date: '', completed: false, active: false, note: '' },
+    { title: 'بررسی اولیه', date: '', completed: false, active: false, note: '' },
+    { title: 'تعمیرات', date: '', completed: false, active: false, note: '' },
+    { title: 'تست نهایی', date: '', completed: false, active: false, note: '' },
+    { title: 'آماده تحویل', date: '', completed: false, active: false, note: '' }
   ])
-  
-  // شماره پیگیری تصادفی
-  const trackingId = ref('GP-' + Math.floor(100000 + Math.random() * 900000))
   
   // فرمت مبلغ بیانه
   const formattedStatement = computed(() => {
     return (repairData.value.statement || 0).toLocaleString()
   })
+  
+  // به‌روزرسانی وضعیت‌ها بر اساس وضعیت فعلی
+  const updateStatuses = (status, receptionDate, readyForDelivery) => {
+    const statusMap = {
+      'pending': {
+        index: 0,
+        title: 'ثبت درخواست',
+        note: 'درخواست شما با موفقیت ثبت شد'
+      },
+      'in-progress': {
+        index: 2,
+        title: 'در حال تعمیر',
+        note: 'در حال بررسی و تعمیر توسط کارشناس'
+      },
+      'completed': {
+        index: 3,
+        title: 'تست نهایی',
+        note: readyForDelivery ? 'دستگاه آماده تحویل به مشتری می‌باشد' : 'در حال تست نهایی دستگاه'
+      }
+    }
+
+    // تعیین وضعیت فعلی
+    let currentStatus
+    if (readyForDelivery) {
+      currentStatus = {
+        index: 4,
+        title: 'آماده تحویل',
+        note: 'دستگاه آماده تحویل به مشتری می‌باشد'
+      }
+    } else {
+      currentStatus = statusMap[status] || statusMap.pending
+    }
+
+    const date = receptionDate || new Date().toLocaleDateString('fa-IR')
+
+    // به‌روزرسانی وضعیت‌ها
+    statuses.value = statuses.value.map((item, index) => {
+      if (index < currentStatus.index) {
+        return {
+          ...item,
+          completed: true,
+          active: false,
+          date: date,
+          note: item.note || 'تکمیل شده'
+        }
+      } else if (index === currentStatus.index) {
+        return {
+          ...item,
+          completed: false,
+          active: true,
+          date: date,
+          note: currentStatus.note
+        }
+      } else {
+        return {
+          ...item,
+          completed: false,
+          active: false,
+          date: '',
+          note: ''
+        }
+      }
+    })
+  }
   
   // چاپ صفحه
   const printPage = () => {
@@ -118,20 +205,59 @@
   
   // ارتباط با پشتیبانی
   const contactSupport = () => {
-    window.location.href = `https://wa.me/989123456789?text=پیگیری تعمیرات - شماره پیگیری: ${trackingId.value}`
+    window.location.href = `https://wa.me/989123456789?text=پیگیری تعمیرات - شماره پیگیری: ${repairData.value.trackingNumber}`
   }
   
   // بارگذاری اطلاعات از localStorage
   onMounted(() => {
-    const savedForm = localStorage.getItem('repairFormData')
-    if (savedForm) {
-      repairData.value = JSON.parse(savedForm)
-      // ذخیره شماره پیگیری اگر وجود نداشت
-      if (!localStorage.getItem('trackingId')) {
-        localStorage.setItem('trackingId', trackingId.value)
-      } else {
-        trackingId.value = localStorage.getItem('trackingId')
+    if (!trackingId.value) {
+      alert('شماره پیگیری نامعتبر است')
+      router.push('/customer/login')
+      return
+    }
+
+    // جستجو در پذیرش‌ها
+    const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    const normalizedTracking = trackingId.value.trim().toUpperCase()
+    const reception = receptions.find(r => r.trackingNumber.toUpperCase() === normalizedTracking)
+    
+    if (reception) {
+      // اطمینان از وجود فیلد readyForDelivery
+      const readyForDelivery = Boolean(reception.readyForDelivery)
+      
+      repairData.value = {
+        fullName: reception.customerName,
+        phone: reception.phone,
+        deviceName: reception.deviceType,
+        category: reception.category,
+        statement: reception.statement,
+        description: reception.issue,
+        status: reception.status,
+        receptionDate: reception.receptionDate || reception.date,
+        deliveryDate: reception.deliveryDate,
+        repairmanId: reception.repairmanId,
+        trackingNumber: reception.trackingNumber,
+        readyForDelivery: readyForDelivery
       }
+
+      // به‌روزرسانی وضعیت‌ها با در نظر گرفتن وضعیت آماده تحویل
+      updateStatuses(
+        reception.status, 
+        reception.receptionDate || reception.date,
+        readyForDelivery
+      )
+
+      // اگر تعمیرکار مشخص شده، اطلاعات تعمیرکار را هم نمایش بده
+      if (reception.repairmanId) {
+        const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
+        const repairman = repairmen.find(r => r.id === Number(reception.repairmanId))
+        if (repairman) {
+          statuses.value[1].note = `در حال بررسی توسط ${repairman.fullName}`
+        }
+      }
+    } else {
+      alert('اطلاعاتی با این شماره پیگیری یافت نشد')
+      router.push('/customer/login')
     }
   })
   </script>
