@@ -49,7 +49,7 @@
             <li><NuxtLink to="/">صفحه اصلی</NuxtLink></li>
             <li><NuxtLink to="/about">درباره ما</NuxtLink></li>
             <li><NuxtLink to="/contact">ارتباط با ما</NuxtLink></li>
-            <li><NuxtLink to="/Form">ثبت درخواست تعمیر</NuxtLink></li>
+            <li><NuxtLink to="/Follow_up">پیگیری درخواست تعمیر</NuxtLink></li>
           </ul>
         </div>
       </div>

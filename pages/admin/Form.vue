@@ -1,0 +1,446 @@
+<template>
+  <div class="form-page">
+    <div class="page-header">
+      <h2>فرم ثبت اطلاعات</h2>
+    </div>
+
+    <div class="form-container">
+      <div class="form-card">
+        <div class="form-header">
+          <h3>اطلاعات مشتری</h3>
+          <p class="text-muted">لطفا اطلاعات خود را با دقت وارد کنید</p>
+        </div>
+
+        <form @submit.prevent="submitForm" class="form-body">
+          <div class="form-group">
+            <label for="fullName">نام و نام خانوادگی</label>
+            <input 
+              v-model="form.fullName" 
+              type="text" 
+              class="form-control" 
+              id="fullName" 
+              required 
+              placeholder="نام و نام خانوادگی خود را وارد کنید"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="phone">شماره همراه</label>
+            <input 
+              v-model="form.phone" 
+              type="tel" 
+              class="form-control" 
+              id="phone" 
+              required 
+              placeholder="09xxxxxxxxx" 
+              pattern="09[0-9]{9}" 
+              maxlength="11"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="deviceName">نام دستگاه</label>
+            <input 
+              v-model="form.deviceName" 
+              type="text" 
+              class="form-control" 
+              id="deviceName" 
+              required 
+              placeholder="نام دستگاه را وارد کنید"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="category">دسته بندی</label>
+            <select v-model="form.category" class="form-control" id="category" required>
+              <option value="" disabled selected>لطفا انتخاب کنید</option>
+              <option value="الکترونیکی">الکترونیکی</option>
+              <option value="مکانیکی">مکانیکی</option>
+              <option value="نرم‌افزاری">نرم‌افزاری</option>
+              <option value="سخت‌افزاری">سخت‌افزاری</option>
+              <option value="سایر">سایر</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="repairman">تعمیرکار</label>
+            <select v-model="form.repairmanId" class="form-control" id="repairman" required>
+              <option value="" disabled selected>لطفا تعمیرکار را انتخاب کنید</option>
+              <option v-for="repairman in activeRepairmen" :key="repairman.id" :value="repairman.id">
+                {{ repairman.fullName }} ({{ repairman.specialty }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="statement">بیانه</label>
+            <div class="statement-input">
+              <button type="button" class="btn btn-outline-secondary" @click="decreaseStatement">
+                <i class="fas fa-minus"></i>
+              </button>
+              <input
+                :value="formattedStatement"
+                @input="onStatementInput($event.target.value)"
+                type="text"
+                inputmode="numeric"
+                class="form-control"
+                id="statement"
+                required
+                placeholder="مبلغ بیانه را وارد کنید"
+              >
+              <button type="button" class="btn btn-outline-secondary" @click="increaseStatement">
+                <i class="fas fa-plus"></i>
+              </button>
+              <span class="input-group-text">تومان</span>
+            </div>
+            <div class="quick-amounts">
+              <button
+                v-for="amount in quickAmounts"
+                :key="amount"
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                @click="form.statement = amount"
+              >
+                {{ amount.toLocaleString() }} تومان
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">توضیحات ظاهری</label>
+            <textarea 
+              v-model="form.description" 
+              class="form-control" 
+              id="description" 
+              rows="4" 
+              placeholder="توضیحات ظاهری را وارد کنید"
+            ></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" @click="resetForm">
+              <i class="fas fa-undo"></i>
+              پاک کردن فرم
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              ثبت اطلاعات
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from "vue"
+
+definePageMeta({
+  layout: 'admin'
+})
+
+const quickAmounts = [100000, 200000, 300000, 400000]
+
+const form = ref({
+  fullName: "",
+  phone: "",
+  deviceName: "",
+  category: "",
+  statement: 0,
+  description: "",
+  repairmanId: "",
+})
+
+// Add editingReceptionId ref
+const editingReceptionId = ref(null)
+
+// Add activeRepairmen ref
+const activeRepairmen = ref([])
+
+// Load reception data if editing
+onMounted(() => {
+  const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
+  activeRepairmen.value = repairmen.filter(r => r.status === 'active')
+  
+  const editingReception = JSON.parse(localStorage.getItem('editingReception') || 'null')
+  if (editingReception) {
+    form.value = {
+      fullName: editingReception.customerName,
+      phone: editingReception.phone,
+      deviceName: editingReception.deviceType,
+      category: editingReception.category,
+      statement: editingReception.statement,
+      description: editingReception.issue,
+      repairmanId: editingReception.repairmanId || "",
+    }
+    editingReceptionId.value = editingReception.id
+  }
+})
+
+const increaseStatement = () => {
+  form.value.statement = Math.min((parseInt(form.value.statement) || 0) + 50000, 1000000000)
+}
+
+const decreaseStatement = () => {
+  form.value.statement = Math.max((parseInt(form.value.statement) || 0) - 50000, 0)
+}
+
+const formattedStatement = computed(() => {
+  const val = parseInt(form.value.statement) || 0
+  return val.toLocaleString()
+})
+
+const onStatementInput = (val) => {
+  const num = parseInt(val.replace(/,/g, "")) || 0
+  form.value.statement = num
+}
+
+const submitForm = () => {
+  if (editingReceptionId.value) {
+    // Update existing reception
+    const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    const index = receptions.findIndex(r => r.id === editingReceptionId.value)
+    
+    if (index !== -1) {
+      receptions[index] = {
+        ...receptions[index],
+        customerName: form.value.fullName,
+        phone: form.value.phone,
+        deviceType: form.value.deviceName,
+        category: form.value.category,
+        statement: form.value.statement,
+        issue: form.value.description,
+        repairmanId: form.value.repairmanId,
+      }
+      
+      localStorage.setItem('receptions', JSON.stringify(receptions))
+      localStorage.removeItem('editingReception')
+      alert("اطلاعات با موفقیت بروزرسانی شد!")
+      navigateTo('/admin/reception')
+    }
+  } else {
+    // Create new reception
+    const newReception = {
+      id: Date.now(),
+      trackingNumber: `GP-${Math.floor(Math.random() * 1000000)}`,
+      date: new Date().toLocaleDateString('fa-IR'),
+      customerName: form.value.fullName,
+      deviceType: form.value.deviceName,
+      issue: form.value.description,
+      status: 'pending',
+      phone: form.value.phone,
+      category: form.value.category,
+      statement: form.value.statement,
+      repairmanId: form.value.repairmanId,
+    }
+
+    const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    receptions.unshift(newReception)
+    localStorage.setItem('receptions', JSON.stringify(receptions))
+    alert("فرم با موفقیت ثبت شد!")
+    navigateTo('/admin/reception')
+  }
+}
+
+const resetForm = () => {
+  form.value = {
+    fullName: "",
+    phone: "",
+    deviceName: "",
+    category: "",
+    statement: 0,
+    description: "",
+    repairmanId: "",
+  }
+  editingReceptionId.value = null
+  localStorage.removeItem('editingReception')
+}
+</script>
+
+<style scoped>
+.form-page {
+  padding: 20px;
+}
+
+.page-header {
+  margin-bottom: 20px;
+}
+
+.form-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.form-header {
+  background: #3498db;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.form-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.form-header p {
+  margin: 5px 0 0;
+  opacity: 0.8;
+}
+
+.form-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.statement-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.statement-input .form-control {
+  text-align: center;
+}
+
+.statement-input .btn {
+  padding: 8px 12px;
+}
+
+.quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-amounts .btn {
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.btn {
+  padding: 8px 15px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #7f8c8d;
+}
+
+.btn-outline-primary {
+  background: transparent;
+  border: 1px solid #3498db;
+  color: #3498db;
+}
+
+.btn-outline-primary:hover {
+  background: #3498db;
+  color: white;
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  border: 1px solid #95a5a6;
+  color: #95a5a6;
+}
+
+.btn-outline-secondary:hover {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .form-page {
+    padding: 10px;
+  }
+
+  .form-header {
+    padding: 15px;
+  }
+
+  .form-body {
+    padding: 15px;
+  }
+
+  .statement-input {
+    flex-wrap: wrap;
+  }
+
+  .statement-input .form-control {
+    order: -1;
+    width: 100%;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>

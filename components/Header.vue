@@ -34,18 +34,18 @@
                 <NuxtLink to="/contact" class="nav-link" active-class="active">ارتباط با ما</NuxtLink>
               </li>
               <li class="nav-item">
-                <NuxtLink to="/Form" class="nav-link" active-class="active">ثبت درخواست تعمیر</NuxtLink>
+                <NuxtLink to="/Follow_up" class="nav-link" active-class="active">پیگیری درخواست تعمیر</NuxtLink>
               </li>
               <!-- دکمه ورود ادمین در حالت موبایل -->
-              <li class="nav-item d-lg-none">
-                <button class="btn btn-light w-100">ورود ادمین</button>
-              </li>
+              <!-- <li class="nav-item d-lg-none">
+                <NuxtLink to="/Follow_up"><button  class="btn btn-light w-100">پیگیری درخواست تعمیر</button></NuxtLink>
+              </li> -->
             </ul>
           </div>
 
           <!-- دکمه ورود ادمین در حالت دسکتاپ -->
           <div class="d-none d-lg-block">
-            <button class="btn btn-light btn-lg">ورود ادمین</button>
+            <NuxtLink to="/Follow_up"><button class="btn btn-light btn-lg">پیگیری درخواست تعمیر</button></NuxtLink>
           </div>
         </div>
       </nav>
