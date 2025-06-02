@@ -15,7 +15,7 @@
               <div class="info-card">
                 <i class="fas fa-map-marker-alt"></i>
                 <h3>آدرس ما</h3>
-                <p>تهران، خیابان آزادی، پلاک ۱۲۳، طبقه دوم</p>
+                <p></p>
               </div>
               
               <div class="info-card">
@@ -92,7 +92,7 @@
   </template>
   
   <script setup>
-  import Footer from '~/components/ّFooter.vue'
+  import Footer from '~/components/Footer.vue'
   const formData = reactive({
     name: '',
     email: '',

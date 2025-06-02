@@ -2,9 +2,19 @@
   <div class="repairmen-page">
     <div class="page-header">
       <h2>مدیریت تعمیرکاران</h2>
-      <button class="btn btn-primary" @click="showRepairmanForm = true">
-        <i class="fas fa-plus"></i> افزودن تعمیرکار جدید
-      </button>
+      <div class="header-actions">
+        <div class="search-box">
+          <input 
+            type="text" 
+            class="form-control" 
+            v-model="searchQuery" 
+            placeholder="جستجو در تعمیرکاران..."
+          >
+        </div>
+        <button class="btn btn-primary" @click="showRepairmanForm = true">
+          <i class="fas fa-plus"></i> افزودن تعمیرکار جدید
+        </button>
+      </div>
     </div>
 
     <div class="repairmen-table">
@@ -20,7 +30,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="repairman in repairmen" :key="repairman.id">
+          <tr v-for="repairman in filteredRepairmen" :key="repairman.id">
             <td>{{ repairman.username }}</td>
             <td>{{ repairman.fullName }}</td>
             <td>{{ repairman.specialty }}</td>
@@ -114,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 definePageMeta({
@@ -133,6 +143,7 @@ const repairmanForm = ref({
 })
 
 const repairmen = ref([])
+const searchQuery = ref('')
 
 // Load repairmen from localStorage
 onMounted(() => {
@@ -200,6 +211,18 @@ const submitRepairmanForm = () => {
   localStorage.setItem('repairmen', JSON.stringify(repairmen.value))
   closeRepairmanForm()
 }
+
+const filteredRepairmen = computed(() => {
+  if (!searchQuery.value) return repairmen.value
+  const query = searchQuery.value.toLowerCase()
+  return repairmen.value.filter(repairman => 
+    repairman.username.toLowerCase().includes(query) ||
+    repairman.fullName.toLowerCase().includes(query) ||
+    repairman.specialty.toLowerCase().includes(query) ||
+    repairman.status.toLowerCase().includes(query) ||
+    repairman.lastLogin.toLowerCase().includes(query)
+  )
+})
 </script>
 
 <style scoped>
@@ -212,6 +235,16 @@ const submitRepairmanForm = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.search-box {
+  width: 300px;
 }
 
 .repairmen-table {
@@ -387,6 +420,15 @@ const submitRepairmanForm = () => {
     flex-direction: column;
     gap: 10px;
     align-items: stretch;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .search-box {
+    width: 100%;
   }
 
   .repairmen-table {

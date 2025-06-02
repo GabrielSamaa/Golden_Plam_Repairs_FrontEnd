@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/4.ico' },
         { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css' },
         { rel: 'stylesheet', href: 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css' },
         { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css' }
@@ -22,7 +23,7 @@ export default defineNuxtConfig({
     }
   },
   css: [
-    '~/assets/css/main.css'
+    '~/assets/css/main.css',
   ]
 })
 

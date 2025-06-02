@@ -254,7 +254,12 @@ const filteredReceptions = computed(() => {
     const search = receptionSearch.value.toLowerCase()
     result = result.filter(r => 
       r.trackingNumber.toLowerCase().includes(search) || 
-      r.customerName.toLowerCase().includes(search))
+      r.customerName.toLowerCase().includes(search) ||
+      r.phone.toLowerCase().includes(search) ||
+      r.deviceType.toLowerCase().includes(search) ||
+      r.category.toLowerCase().includes(search) ||
+      r.issue.toLowerCase().includes(search)
+    )
   }
   return result
 })

@@ -3,15 +3,15 @@
       <div class="footer-container">
         <div class="footer-section">
           <h3 class="footer-title">نخل طلایی</h3>
-          <p class="footer-description">مرکز تخصصی تعمیرات دستگاه‌های الکترونیکی</p>
+          <p class="footer-description">مرکز تخصصی تعمیرات دستگاه‌های آرایشی</p>
           <div class="social-icons">
-            <a href="#" class="social-icon whatsapp">
+            <a href="https://wa.me/989052768426" class="social-icon whatsapp">
               <i class="fab fa-whatsapp"></i>
             </a>
-            <a href="#" class="social-icon telegram">
+            <a href="https://t.me/nakhltalaei" class="social-icon telegram">
               <i class="fab fa-telegram"></i>
             </a>
-            <a href="#" class="social-icon instagram">
+            <a href="https://nakhl.talaei.safari" class="social-icon instagram">
               <i class="fab fa-instagram"></i>
             </a>
           </div>
@@ -22,23 +22,23 @@
           <ul class="footer-links">
             <li>
               <i class="fas fa-map-marker-alt"></i>
-              <span>آدرس: تهران، خیابان آزادی، پلاک ۱۲۳</span>
+              <span>آدرس: فردیس , فلکه سوم , پاساژ بعثت , طبقه زیرزمین , پلاک 15</span>
             </li>
             <li>
               <i class="fas fa-phone"></i>
-              <span>تلفن: ۰۲۱-۱۲۳۴۵۶۷۸</span>
+              <span>تلفن: 36517809_026</span>
             </li>
             <li>
               <i class="fas fa-mobile-alt"></i>
-              <span>واتساپ: ۰۹۱۲۳۴۵۶۷۸۹</span>
+              <span>واتساپ: 0905276842</span>
             </li>
             <li>
               <i class="fab fa-telegram"></i>
-              <span>تلگرام: @golden_palm_support</span>
+              <span>تلگرام: t.me/nakhltalaei</span>
             </li>
             <li>
               <i class="fas fa-envelope"></i>
-              <span>ایمیل: info@goldenpalm.ir</span>
+              <span>ایمیل:</span>
             </li>
           </ul>
         </div>

@@ -1,5 +1,4 @@
 <template>
-    <Header />
     <div class="min-vh-100 bg-light py-5">
       <div class="container" style="max-width: 800px;">
         <div class="card shadow">
@@ -91,12 +90,9 @@
         </div>
       </div>
     </div>
-    <Footer />
   </template>
   
   <script setup>
-  import Footer from '~/components/ّFooter.vue'
-  import Header from '~/components/Header.vue'
   import { ref, computed, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   
@@ -205,7 +201,7 @@
   
   // ارتباط با پشتیبانی
   const contactSupport = () => {
-    window.location.href = `https://wa.me/989123456789?text=پیگیری تعمیرات - شماره پیگیری: ${repairData.value.trackingNumber}`
+    window.location.href = `https://wa.me/989052768426?text=پیگیری تعمیرات - شماره پیگیری: ${repairData.value.trackingNumber}`
   }
   
   // بارگذاری اطلاعات از localStorage

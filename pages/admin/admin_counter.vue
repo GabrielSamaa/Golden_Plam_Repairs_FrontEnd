@@ -51,13 +51,19 @@
             type="text" 
             class="form-control" 
             v-model="searchQuery" 
-            placeholder="جستجو در دستگاه‌ها..."
+            placeholder="جستجو در شماره پیگیری، مشتری، دستگاه، شماره تماس..."
           >
         </div>
-        <select class="form-select" v-model="sortBy">
-          <option value="date">مرتب‌سازی بر اساس تاریخ</option>
-          <option value="amount">مرتب‌سازی بر اساس مبلغ</option>
-        </select>
+        <div class="filter-actions">
+          <select class="form-select" v-model="sortBy">
+            <option value="date">مرتب‌سازی بر اساس تاریخ</option>
+            <option value="amount">مرتب‌سازی بر اساس مبلغ</option>
+          </select>
+          <button class="btn btn-outline-secondary" @click="clearSearch">
+            <i class="fas fa-times"></i>
+            پاک کردن جستجو
+          </button>
+        </div>
       </div>
       <div class="table-responsive">
         <table class="table">
@@ -146,6 +152,11 @@ const pendingDeliveryCount = computed(() => {
   ).length
 })
 
+// پاک کردن جستجو
+const clearSearch = () => {
+  searchQuery.value = ''
+}
+
 // فیلتر و مرتب‌سازی تعمیرات
 const filteredRepairs = computed(() => {
   let result = repairs.value.filter(repair => {
@@ -154,11 +165,22 @@ const filteredRepairs = computed(() => {
       return false
     }
 
+    // اگر جستجویی انجام نشده، همه را نمایش بده
+    if (!searchQuery.value) {
+      return true
+    }
+
     const searchLower = searchQuery.value.toLowerCase()
     return (
       repair.trackingNumber.toLowerCase().includes(searchLower) ||
       repair.customerName.toLowerCase().includes(searchLower) ||
-      repair.deviceType.toLowerCase().includes(searchLower)
+      repair.deviceType.toLowerCase().includes(searchLower) ||
+      repair.phone.toLowerCase().includes(searchLower) ||
+      repair.category.toLowerCase().includes(searchLower) ||
+      repair.issue.toLowerCase().includes(searchLower) ||
+      (repair.parts && repair.parts.some(part => part.name.toLowerCase().includes(searchLower))) ||
+      repair.statement.toString().includes(searchLower) ||
+      (repair.completionDate && repair.completionDate.toLowerCase().includes(searchLower))
     )
   })
 
@@ -350,11 +372,18 @@ const moveToArchive = (repair) => {
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .search-box {
   flex: 1;
-  max-width: 300px;
+  min-width: 300px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .form-select {
@@ -362,6 +391,21 @@ const moveToArchive = (repair) => {
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
+  min-width: 200px;
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  border: 1px solid #95a5a6;
+  color: #7f8c8d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-outline-secondary:hover {
+  background: #95a5a6;
+  color: white;
 }
 
 .table-responsive {
@@ -461,7 +505,22 @@ const moveToArchive = (repair) => {
   }
   
   .search-box {
-    max-width: 100%;
+    width: 100%;
+    min-width: unset;
+  }
+  
+  .filter-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .form-select {
+    width: 100%;
+  }
+  
+  .btn-outline-secondary {
+    width: 100%;
+    justify-content: center;
   }
   
   .table th,

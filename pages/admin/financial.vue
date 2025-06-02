@@ -30,6 +30,15 @@
           </select>
         </div>
         <div class="col-md-3">
+          <label>جستجو:</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            v-model="searchQuery" 
+            placeholder="شماره پیگیری، مشتری یا دستگاه..."
+          >
+        </div>
+        <div class="col-md-3">
           <button class="btn btn-primary" @click="applyFilters">اعمال فیلتر</button>
         </div>
       </div>
@@ -206,6 +215,7 @@ const toDate = ref('')
 const transactionType = ref('all')
 const showDetailsModal = ref(false)
 const selectedRecord = ref(null)
+const searchQuery = ref('')
 
 const financialRecords = ref([])
 
@@ -220,6 +230,18 @@ onMounted(() => {
 
 const filteredRecords = computed(() => {
   let result = financialRecords.value
+
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(record => 
+      record.trackingNumber.toLowerCase().includes(query) ||
+      record.customerName.toLowerCase().includes(query) ||
+      record.deviceType.toLowerCase().includes(query) ||
+      record.description.toLowerCase().includes(query) ||
+      record.id.toLowerCase().includes(query)
+    )
+  }
 
   // Filter by transaction type
   if (transactionType.value !== 'all') {

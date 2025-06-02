@@ -113,8 +113,10 @@ const filteredMessages = computed(() => {
   return messages.value.filter(message => 
     message.sender.toLowerCase().includes(query) ||
     message.content.toLowerCase().includes(query) ||
-    message.subject.toLowerCase().includes(query) ||
-    message.email.toLowerCase().includes(query)
+    message.email.toLowerCase().includes(query) ||
+    message.date.toLowerCase().includes(query) ||
+    (message.trackingNumber && message.trackingNumber.toLowerCase().includes(query)) ||
+    (message.subject && message.subject.toLowerCase().includes(query))
   )
 })
 

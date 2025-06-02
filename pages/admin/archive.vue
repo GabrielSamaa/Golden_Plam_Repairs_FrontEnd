@@ -163,7 +163,12 @@ const filteredArchive = computed(() => {
     const search = archiveSearch.value.toLowerCase()
     result = result.filter(r => 
       r.trackingNumber.toLowerCase().includes(search) || 
-      r.customerName.toLowerCase().includes(search))
+      r.customerName.toLowerCase().includes(search) ||
+      r.deviceType.toLowerCase().includes(search) ||
+      r.issue.toLowerCase().includes(search) ||
+      r.date.toLowerCase().includes(search) ||
+      (r.parts && r.parts.some(part => part.name.toLowerCase().includes(search)))
+    )
   }
   return result
 })

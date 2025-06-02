@@ -9,27 +9,80 @@
         </div>
 
         <div class="card-body">
-          <form @submit.prevent="handleLogin" class="login-form">
+          <!-- فرم ورود شماره تلفن -->
+          <form v-if="!codeSent" @submit.prevent="sendVerificationCode" class="login-form">
             <div class="form-group">
               <label for="phone">شماره تماس</label>
-              <div class="input-group">
-                <span class="input-group-text">09</span>
-                <input
-                  v-model="phone"
-                  type="tel"
-                  class="form-control"
-                  id="phone"
-                  placeholder="شماره تماس خود را وارد کنید"
-                  pattern="[0-9]{9}"
-                  maxlength="9"
-                  required
-                >
+              <input
+                v-model="phone"
+                type="tel"
+                class="form-control"
+                id="phone"
+                placeholder="شماره تماس خود را وارد کنید"
+                pattern="09[0-9]{9}"
+                maxlength="11"
+                required
+                dir="ltr"
+              >
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" :disabled="isSendingCode || resendTimer > 0">
+              <span v-if="isSendingCode">
+                <i class="fas fa-spinner fa-spin"></i>
+                در حال ارسال...
+              </span>
+              <span v-else-if="resendTimer > 0">
+                <i class="fas fa-clock"></i>
+                ارسال مجدد ({{ formatTime(resendTimer) }})
+              </span>
+              <span v-else>
+                <i class="fas fa-paper-plane"></i>
+                ارسال کد تأیید
+              </span>
+            </button>
+          </form>
+
+          <!-- فرم وارد کردن کد تایید -->
+          <form v-else @submit.prevent="verifyCode" class="login-form">
+            <div class="form-group">
+              <label>کد تأیید پیامک شده را وارد کنید:</label>
+              <input 
+                type="text" 
+                v-model="smsCode" 
+                class="form-control"
+                placeholder="کد 6 رقمی"
+                maxlength="6"
+                :class="{ 'is-invalid': error }"
+                required
+              >
+              <div class="invalid-feedback" v-if="error">
+                {{ error }}
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">
-              <i class="fas fa-sign-in-alt"></i>
-              ورود به سیستم
+            <button type="submit" class="btn btn-primary w-100" :disabled="isVerifying || !smsCode">
+              <span v-if="isVerifying">
+                <i class="fas fa-spinner fa-spin"></i>
+                در حال بررسی...
+              </span>
+              <span v-else>
+                <i class="fas fa-check"></i>
+                تأیید کد
+              </span>
+            </button>
+
+            <button 
+              type="button" 
+              class="btn btn-link w-100 mt-2" 
+              @click="resendCode"
+              :disabled="isSendingCode || resendTimer > 0"
+            >
+              <span v-if="resendTimer > 0">
+                ارسال مجدد ({{ formatTime(resendTimer) }})
+              </span>
+              <span v-else>
+                ارسال مجدد کد
+              </span>
             </button>
           </form>
         </div>
@@ -54,90 +107,151 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '~/components/Header.vue'
 import RepairCard from '~/components/RepairCard.vue'
 
 const router = useRouter()
 const phone = ref('')
+const smsCode = ref('')
+const error = ref('')
+const isSendingCode = ref(false)
+const isVerifying = ref(false)
+const codeSent = ref(false)
+const resendTimer = ref(0)
 const userRepairs = ref([])
+let timerInterval = null
 
-const handleLogin = () => {
-  // نمایش داده‌های موجود در localStorage برای دیباگ
-  const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-  console.log('Debug - All receptions:', receptions)
+// فرمت کردن زمان به دقیقه و ثانیه
+const formatTime = (seconds) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+// شروع تایمر
+const startResendTimer = () => {
+  resendTimer.value = 120 // 2 دقیقه
+  if (timerInterval) clearInterval(timerInterval)
   
-  // نرمال‌سازی شماره تلفن ورودی
-  const inputPhone = phone.value.trim()
-  // حذف ۰۹ از ابتدای شماره اگر وجود داشت
-  const cleanInput = inputPhone.replace(/^09/, '')
-  // اگر شماره ۹ رقمی است، آن را به ۱۱ رقمی تبدیل می‌کنیم
-  const normalizedInput = cleanInput.length === 9 ? `09${cleanInput}` : cleanInput
+  timerInterval = setInterval(() => {
+    if (resendTimer.value > 0) {
+      resendTimer.value--
+    } else {
+      clearInterval(timerInterval)
+    }
+  }, 1000)
+}
+
+// اضافه کردن watch برای کنترل ورودی شماره تلفن
+watch(phone, (newValue) => {
+  // حذف همه کاراکترهای غیر عددی
+  let cleaned = newValue.replace(/\D/g, '')
   
-  console.log('Debug - Phone search:', {
-    originalInput: phone.value,
-    inputPhone,
-    cleanInput,
-    normalizedInput,
-    receptions: receptions.map(r => ({
-      id: r.id,
-      trackingNumber: r.trackingNumber,
-      originalPhone: r.phone,
-      normalizedPhone: r.phone.toString().trim(),
-      customerName: r.customerName
+  // اگر شماره با 09 شروع نشده، اضافه کن
+  if (!cleaned.startsWith('09') && cleaned.length > 0) {
+    cleaned = '09' + cleaned
+  }
+  
+  // محدود کردن طول به 11 رقم
+  if (cleaned.length > 11) {
+    cleaned = cleaned.slice(0, 11)
+  }
+  
+  // به‌روزرسانی مقدار اگر تغییر کرده باشد
+  if (cleaned !== newValue) {
+    phone.value = cleaned
+  }
+})
+
+// ارسال کد تأیید
+const sendVerificationCode = async () => {
+  if (!phone.value || phone.value.length !== 11) {
+    error.value = 'لطفاً شماره تماس را به درستی وارد کنید'
+    return
+  }
+
+  isSendingCode.value = true
+  error.value = ''
+
+  try {
+    // کد ثابت برای تست: 123456
+    const verificationCode = '123456'
+    
+    // در اینجا باید کد را به سرور ارسال کنید و از آنجا پیامک شود
+    const smsText = `کد تأیید ورود به سیستم پیگیری تعمیرات: ${verificationCode}\nتعمیرگاه طلایی پالم`
+    
+    // ذخیره کد در localStorage
+    localStorage.setItem('loginVerificationCode', JSON.stringify({
+      phone: phone.value,
+      code: verificationCode,
+      timestamp: new Date().toISOString()
     }))
-  })
-  
-  // جستجو در لیست پذیرش‌ها
-  const foundRepairs = receptions.filter(r => {
-    // نرمال‌سازی شماره تلفن ذخیره شده
-    const storedPhone = r.phone.toString().trim()
     
-    // مقایسه شماره‌ها
-    const isMatch = storedPhone === normalizedInput || 
-                   storedPhone.replace(/^09/, '') === cleanInput ||
-                   storedPhone === cleanInput
-    
-    console.log('Debug - Phone comparison:', {
-      storedPhone,
-      normalizedInput,
-      cleanInput,
-      isMatch
-    })
-    
-    return isMatch
-  })
-
-  if (foundRepairs.length === 0) {
-    console.log('Debug - No matches found for phone:', normalizedInput)
-    alert('اطلاعاتی یافت نشد. لطفاً شماره تماس را با دقت وارد کنید.')
-  } else {
-    console.log('Debug - Found matches:', foundRepairs)
-    // هدایت به صفحه تعمیرات مشتری
-    router.push(`/customer/my_repairs?phone=${normalizedInput}`)
+    // نمایش پیام موفقیت
+    alert(`کد تأیید به شماره ${phone.value} ارسال شد.\n\nکد تست: ${verificationCode}\n\nمتن پیامک:\n${smsText}`)
+    codeSent.value = true
+    startResendTimer()
+  } catch (err) {
+    error.value = 'خطا در ارسال کد تأیید'
+    console.error('Error sending verification code:', err)
+  } finally {
+    isSendingCode.value = false
   }
 }
 
-// اضافه کردن تابع برای بررسی وضعیت localStorage
-const checkLocalStorage = () => {
-  const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-  console.log('Debug - Current localStorage state:', {
-    receptionsCount: receptions.length,
-    receptions: receptions.map(r => ({
-      id: r.id,
-      trackingNumber: r.trackingNumber,
-      phone: r.phone,
-      cleanPhone: r.phone.toString().replace(/^09/, ''),
-      customerName: r.customerName
-    }))
-  })
+// ارسال مجدد کد
+const resendCode = () => {
+  if (resendTimer.value > 0) return
+  smsCode.value = ''
+  sendVerificationCode()
 }
 
-// فراخوانی تابع در زمان بارگذاری کامپوننت
-onMounted(() => {
-  checkLocalStorage()
+// بررسی کد پیامک
+const verifyCode = async () => {
+  if (!smsCode.value || smsCode.value.length !== 6) {
+    error.value = 'لطفاً کد 6 رقمی را وارد کنید'
+    return
+  }
+
+  isVerifying.value = true
+  error.value = ''
+
+  try {
+    // بررسی کد از localStorage
+    const savedData = JSON.parse(localStorage.getItem('loginVerificationCode') || '{}')
+    
+    if (savedData.phone === phone.value && savedData.code === smsCode.value) {
+      // کد صحیح است
+      const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+      const foundRepairs = receptions.filter(r => r.phone.toString().trim() === phone.value)
+      
+      if (foundRepairs.length === 0) {
+        alert('اطلاعاتی یافت نشد. لطفاً شماره تماس را با دقت وارد کنید.')
+      } else {
+        // هدایت به صفحه تعمیرات مشتری
+        router.push(`/customer/my_repairs?phone=${phone.value}`)
+      }
+    } else {
+      error.value = 'کد وارد شده صحیح نیست'
+    }
+  } catch (err) {
+    error.value = 'خطا در بررسی کد'
+    console.error('Error verifying code:', err)
+  } finally {
+    isVerifying.value = false
+  }
+}
+
+// پاکسازی تایمر هنگام خروج از کامپوننت
+onUnmounted(() => {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+  }
 })
+
+// اضافه کردن استایل‌های جدید
 </script>
 
 <style scoped>
@@ -214,6 +328,8 @@ onMounted(() => {
   border: 1px solid #ddd;
   border-radius: 4px;
   transition: all 0.3s;
+  text-align: left;
+  direction: ltr;
 }
 
 .form-control:focus {
@@ -294,5 +410,39 @@ onMounted(() => {
 /* حذف استایل‌های مربوط به tabs */
 .tabs, .tab-btn {
   display: none;
+}
+
+.btn-link {
+  color: #3498db;
+  text-decoration: none;
+  padding: 0;
+  font-size: 0.9rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-link:hover:not(:disabled) {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.btn-link:disabled {
+  color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.form-control.is-invalid {
+  border-color: #dc3545;
+}
+
+.invalid-feedback {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-top: 5px;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 </style> 

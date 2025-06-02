@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ 'show': isMobileMenuOpen }">
       <div class="sidebar-header">
-        <img src="#" alt="Logo" class="logo">
+        <img src="/assets/images/2.png" alt="Logo" class="logo">
         <button class="close-btn d-lg-none" @click="toggleSidebar">
           <i class="fas fa-times"></i>
         </button>
@@ -46,12 +46,6 @@
               <span>مدیریت ادمین‌ها</span>
             </NuxtLink>
           </li>
-          <li>
-            <NuxtLink to="/admin/settings" class="nav-item" active-class="active" @click="closeMenu">
-              <i class="fas fa-cog"></i>
-              <span>تنظیمات سیستم</span>
-            </NuxtLink>
-          </li>
         </ul>
       </nav>
     </div>
@@ -63,17 +57,17 @@
         <button class="navbar-toggler" type="button" @click="toggleSidebar">
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="search-box">
+        <!-- <div class="search-box">
           <input type="text" placeholder="جستجو..." class="search-input">
           <i class="fas fa-search"></i>
-        </div>
+        </div> -->
         <div class="user-menu">
-          <div class="notifications">
+          <NuxtLink to="/admin/messages" class="notifications" :class="{ 'has-unread': unreadCount > 0 }">
             <i class="fas fa-bell"></i>
-            <span class="badge">3</span>
-          </div>
+            <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
+          </NuxtLink>
           <div class="user-info">
-            <img src="#" alt="User" class="user-avatar">
+            <img src="/assets/images/2.png" alt="User" class="user-avatar">
             <span class="user-name">مدیر سیستم</span>
           </div>
         </div>
@@ -88,9 +82,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 const isMobileMenuOpen = ref(false)
+const unreadCount = ref(0)
 
 const toggleSidebar = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
@@ -109,13 +104,24 @@ const handleResize = () => {
   }
 }
 
+// تابع برای به‌روزرسانی تعداد پیام‌های نخوانده
+const updateUnreadCount = () => {
+  const messages = JSON.parse(localStorage.getItem('userMessages') || '[]')
+  unreadCount.value = messages.filter(message => !message.read).length
+}
+
+// به‌روزرسانی تعداد پیام‌ها در زمان لود صفحه
 onMounted(() => {
+  updateUnreadCount()
+  // اضافه کردن event listener برای تغییرات در localStorage
+  window.addEventListener('storage', updateUnreadCount)
   window.addEventListener('resize', handleResize)
   handleResize() // Initial check
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  window.removeEventListener('storage', updateUnreadCount)
 })
 </script>
 
@@ -267,11 +273,27 @@ onUnmounted(() => {
 .notifications {
   position: relative;
   cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.notifications:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.notifications.has-unread i {
+  color: #3498db;
 }
 
 .notifications i {
   font-size: 1.2rem;
   color: #7f8c8d;
+  transition: all 0.3s;
 }
 
 .badge {
@@ -283,6 +305,11 @@ onUnmounted(() => {
   font-size: 0.7rem;
   padding: 2px 5px;
   border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-info {

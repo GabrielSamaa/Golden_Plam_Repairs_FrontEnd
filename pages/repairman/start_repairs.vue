@@ -46,12 +46,28 @@
                 <tr v-for="(part, index) in parts" :key="index">
                   <td>{{ index + 1 }}</td>
                   <td>
-                    <input 
-                      type="text" 
-                      class="form-control" 
-                      v-model="part.name"
-                      placeholder="نام قطعه را وارد کنید"
-                    >
+                    <div class="position-relative">
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        v-model="part.name"
+                        placeholder="نام قطعه را وارد کنید"
+                        @input="searchParts(index)"
+                        @focus="showSuggestions(index)"
+                        @blur="hideSuggestions(index)"
+                      >
+                      <!-- لیست پیشنهادات -->
+                      <div v-if="showSuggestionList === index && filteredParts.length > 0" 
+                           class="suggestions-list">
+                        <div v-for="suggestedPart in filteredParts" 
+                             :key="suggestedPart.name"
+                             class="suggestion-item"
+                             @mousedown="selectPart(index, suggestedPart)">
+                          <span>{{ suggestedPart.name }}</span>
+                          <small class="text-muted">{{ suggestedPart.price.toLocaleString() }} تومان</small>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td>
                     <input 
@@ -107,6 +123,8 @@
   const route = useRoute()
   const router = useRouter()
   const repairInfo = ref(null)
+  const showSuggestionList = ref(-1)
+  const filteredParts = ref([])
   
   // لیست قطعات
   const parts = ref([
@@ -134,6 +152,74 @@
       }
     }
   })
+  
+  // بارگذاری قطعات پیشنهادی از localStorage
+  const savedParts = computed(() => {
+    return JSON.parse(localStorage.getItem('suggested_parts') || '[]')
+  })
+  
+  // جستجوی قطعات پیشنهادی
+  const searchParts = (index) => {
+    const searchTerm = parts.value[index].name.toLowerCase()
+    if (searchTerm.length < 2) {
+      filteredParts.value = []
+      return
+    }
+    
+    filteredParts.value = savedParts.value.filter(part => 
+      part.name.toLowerCase().includes(searchTerm)
+    ).slice(0, 5) // حداکثر 5 پیشنهاد
+  }
+  
+  // نمایش لیست پیشنهادات
+  const showSuggestions = (index) => {
+    showSuggestionList.value = index
+    searchParts(index)
+  }
+  
+  // مخفی کردن لیست پیشنهادات
+  const hideSuggestions = () => {
+    setTimeout(() => {
+      showSuggestionList.value = -1
+    }, 200)
+  }
+  
+  // انتخاب قطعه از لیست پیشنهادات
+  const selectPart = (index, suggestedPart) => {
+    parts.value[index] = { ...suggestedPart }
+    calculateTotal()
+    showSuggestionList.value = -1
+  }
+  
+  // ذخیره قطعه جدید در لیست پیشنهادات
+  const saveToSuggestedParts = (part) => {
+    if (!part.name.trim() || !part.price) return
+    
+    const suggestedParts = savedParts.value
+    const existingIndex = suggestedParts.findIndex(p => p.name === part.name)
+    
+    if (existingIndex === -1) {
+      // اضافه کردن قطعه جدید
+      suggestedParts.push({
+        name: part.name,
+        price: Number(part.price),
+        lastUsed: new Date().toISOString()
+      })
+    } else {
+      // به‌روزرسانی قیمت و زمان استفاده
+      suggestedParts[existingIndex] = {
+        ...suggestedParts[existingIndex],
+        price: Number(part.price),
+        lastUsed: new Date().toISOString()
+      }
+    }
+    
+    // مرتب‌سازی بر اساس آخرین استفاده
+    suggestedParts.sort((a, b) => new Date(b.lastUsed) - new Date(a.lastUsed))
+    
+    // ذخیره در localStorage
+    localStorage.setItem('suggested_parts', JSON.stringify(suggestedParts))
+  }
   
   // بازگشت به صفحه قبل
   const goBack = () => {
@@ -174,6 +260,11 @@
       alert('لطفاً اطلاعات تمام قطعات را تکمیل کنید')
       return
     }
+  
+    // ذخیره قطعات در لیست پیشنهادات
+    parts.value.forEach(part => {
+      saveToSuggestedParts(part)
+    })
   
     // آماده کردن داده برای ارسال
     const dataToSend = {
@@ -311,5 +402,45 @@
     .repair-info {
       padding: 10px;
     }
+  }
+  
+  .suggestions-list {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .suggestion-item:last-child {
+    border-bottom: none;
+  }
+  
+  .suggestion-item:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .suggestion-item small {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  
+  .position-relative {
+    position: relative;
   }
   </style>
