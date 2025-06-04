@@ -3,7 +3,7 @@
 ## اطلاعات پایه
 - **Base URL**: `http://localhost:3000/api`
 - **نوع پاسخ‌ها**: JSON
-- **احراز هویت**: JWT Token در هدر `Authorization`
+- **احراز هویت**: JWT Token در هدر `Authorization` و ذخیره در `sessionStorage`
 
 ## مدل‌های داده
 
@@ -17,6 +17,7 @@
   "fullName": "string",
   "phone": "string",
   "email": "string",
+  "status": "active | inactive",
   "createdAt": "date",
   "lastLogin": "date"
 }
@@ -106,6 +107,63 @@
     "role": "string",
     "fullName": "string"
   }
+}
+```
+
+#### ورود ادمین
+- **Method**: POST
+- **Endpoint**: `/auth/admin/login`
+- **ورودی**:
+```json
+{
+  "phone": "string",
+  "password": "string"
+}
+```
+- **خروجی**:
+```json
+{
+  "success": "boolean",
+  "token": "string",
+  "user": {
+    "id": "string",
+    "phone": "string",
+    "role": "admin",
+    "fullName": "string",
+    "status": "active"
+  }
+}
+```
+
+#### بررسی وضعیت ادمین
+- **Method**: GET
+- **Endpoint**: `/auth/admin/status`
+- **Headers**: 
+  - `Authorization`: Bearer {token}
+- **خروجی**:
+```json
+{
+  "success": "boolean",
+  "isAuthenticated": "boolean",
+  "user": {
+    "id": "string",
+    "phone": "string",
+    "role": "admin",
+    "status": "active"
+  }
+}
+```
+
+#### خروج از سیستم
+- **Method**: POST
+- **Endpoint**: `/auth/logout`
+- **Headers**: 
+  - `Authorization`: Bearer {token}
+- **خروجی**:
+```json
+{
+  "success": "boolean",
+  "message": "string"
 }
 ```
 
@@ -322,6 +380,51 @@
 }
 ```
 
+### مدیریت ادمین‌ها
+
+#### دریافت لیست ادمین‌ها
+- **Method**: GET
+- **Endpoint**: `/admin/admins`
+- **Headers**: 
+  - `Authorization`: Bearer {token}
+- **خروجی**:
+```json
+{
+  "success": "boolean",
+  "admins": [
+    {
+      "id": "string",
+      "fullName": "string",
+      "phone": "string",
+      "status": "active | inactive",
+      "lastLogin": "date"
+    }
+  ]
+}
+```
+
+#### تغییر وضعیت ادمین
+- **Method**: PATCH
+- **Endpoint**: `/admin/admins/:id/status`
+- **Headers**: 
+  - `Authorization`: Bearer {token}
+- **ورودی**:
+```json
+{
+  "status": "active | inactive"
+}
+```
+- **خروجی**:
+```json
+{
+  "success": "boolean",
+  "admin": {
+    "id": "string",
+    "status": "string"
+  }
+}
+```
+
 ## نیازمندی‌های سرور
 
 ### تکنولوژی‌ها
@@ -354,6 +457,7 @@ PORT=3000
 MONGODB_URI=mongodb://localhost:27017/golden_palm
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRES_IN=24h
+ADMIN_SESSION_TIMEOUT=24h
 ```
 
 ### امنیت
@@ -365,9 +469,13 @@ JWT_EXPIRES_IN=24h
 
 ### نکات پیاده‌سازی
 1. تمام درخواست‌ها باید با توکن JWT معتبر باشند (به جز ثبت‌نام و ورود)
-2. دسترسی به API‌های مدیریتی فقط برای کاربران با نقش admin مجاز است
-3. تمام تاریخ‌ها در فرمت ISO 8601 ذخیره می‌شوند
-4. خطاها با کد HTTP مناسب و پیام خطای فارسی برگردانده می‌شوند
-5. پاگینیشن برای تمام لیست‌ها پیاده‌سازی شود
-6. لاگ تمام عملیات‌های مهم
-7. پشتیبان‌گیری منظم از دیتابیس 
+2. توکن JWT در `sessionStorage` ذخیره می‌شود
+3. زمان ورود ادمین در `sessionStorage` ذخیره می‌شود
+4. وضعیت ادمین‌ها در `localStorage` ذخیره می‌شود
+5. دسترسی به API‌های مدیریتی فقط برای ادمین‌های فعال مجاز است
+6. جلسه ادمین بعد از 24 ساعت منقضی می‌شود
+7. تمام تاریخ‌ها در فرمت ISO 8601 ذخیره می‌شوند
+8. خطاها با کد HTTP مناسب و پیام خطای فارسی برگردانده می‌شوند
+9. پاگینیشن برای تمام لیست‌ها پیاده‌سازی شود
+10. لاگ تمام عملیات‌های مهم
+11. پشتیبان‌گیری منظم از دیتابیس 

@@ -84,7 +84,8 @@
 import { ref, computed, onMounted } from 'vue'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['admin']
 })
 
 const searchQuery = ref('')

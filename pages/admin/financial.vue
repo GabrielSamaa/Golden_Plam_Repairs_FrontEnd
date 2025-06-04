@@ -207,7 +207,8 @@ import { ref, computed, onMounted } from 'vue'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['admin']
 })
 
 const fromDate = ref('')

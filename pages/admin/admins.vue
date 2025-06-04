@@ -128,7 +128,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['admin']
 })
 
 const router = useRouter()

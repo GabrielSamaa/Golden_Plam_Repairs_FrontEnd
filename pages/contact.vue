@@ -14,30 +14,30 @@
             <div class="contact-info">
               <div class="info-card">
                 <i class="fas fa-map-marker-alt"></i>
-                <h3>آدرس ما</h3>
+                <h3>آدرس ما: فردیس , فلکه سوم , پاساژ بعثت , طبقه زیرزمین , پلاک 15</h3>
                 <p></p>
               </div>
               
               <div class="info-card">
                 <i class="fas fa-phone"></i>
                 <h3>تلفن تماس</h3>
-                <p>۰۲۱-۱۲۳۴۵۶۷۸</p>
-                <p>۰۹۱۲۳۴۵۶۷۸۹ (واتساپ)</p>
+                <p>۰۲۱-۳۶۵۱۷۸۰۹</p>
+                <p>۰۹۰۵۲۷۶۸۴۲۹ (واتساپ)</p>
               </div>
               
               <div class="info-card">
                 <i class="fas fa-envelope"></i>
                 <h3>ایمیل</h3>
-                <p>info@goldenpalm.ir</p>
-                <p>support@goldenpalm.ir</p>
+                <p>nakhltalaei@gmail.com</p>
+                <p>support@nakhltalaei.ir</p>
               </div>
               
               <div class="info-card">
                 <i class="fab fa-telegram"></i>
                 <h3>شبکه‌های اجتماعی</h3>
                 <div class="social-links">
-                  <a href="#" class="telegram"><i class="fab fa-telegram"></i> @golden_palm</a>
-                  <a href="#" class="instagram"><i class="fab fa-instagram"></i> golden_palm</a>
+                  <a href="#" class="telegram"><i class="fab fa-telegram"></i> t.me/nakhltalaei</a>
+                  <a href="#" class="instagram"><i class="fab fa-instagram"></i> nakhl.talaei.safari</a>
                 </div>
               </div>
             </div>

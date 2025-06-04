@@ -66,9 +66,25 @@
             <i class="fas fa-bell"></i>
             <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
           </NuxtLink>
-          <div class="user-info">
+          <div class="user-info" @click="toggleUserMenu">
             <img src="/assets/images/2.png" alt="User" class="user-avatar">
-            <span class="user-name">مدیر سیستم</span>
+            <span class="user-name">{{ currentUser?.name || 'مدیر سیستم' }}</span>
+            <i class="fas fa-chevron-down" :class="{ 'rotate': isUserMenuOpen }"></i>
+          </div>
+          <!-- منوی کاربر -->
+          <div class="user-dropdown" v-if="isUserMenuOpen" v-click-outside="closeUserMenu">
+            <div class="user-dropdown-header">
+              <img src="/assets/images/2.png" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <span class="user-dropdown-name">{{ currentUser?.name || 'مدیر سیستم' }}</span>
+                <span class="user-dropdown-role">{{ currentUser?.role === 'admin' ? 'مدیر سیستم' : 'کاربر' }}</span>
+              </div>
+            </div>
+            <div class="user-dropdown-divider"></div>
+            <button class="user-dropdown-item" @click="handleLogout">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>خروج از سیستم</span>
+            </button>
           </div>
         </div>
       </div>
@@ -83,9 +99,30 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 
+// حذف middleware از اینجا چون از middleware سراسری استفاده می‌کنیم
+definePageMeta({
+  layout: 'admin'
+})
+
+const router = useRouter()
+const route = useRoute()
 const isMobileMenuOpen = ref(false)
+const isUserMenuOpen = ref(false)
 const unreadCount = ref(0)
+const currentUser = ref(null)
+
+// اضافه کردن watch برای تغییر مسیر
+watch(() => route.path, (newPath) => {
+  // بستن منوی موبایل در تغییر مسیر
+  if (window.innerWidth <= 991.98) {
+    isMobileMenuOpen.value = false
+  }
+  // بستن منوی کاربر در تغییر مسیر
+  isUserMenuOpen.value = false
+})
 
 const toggleSidebar = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
@@ -97,7 +134,7 @@ const closeMenu = () => {
   }
 }
 
-// Handle window resize
+// Handle window resiz
 const handleResize = () => {
   if (window.innerWidth > 991) {
     isMobileMenuOpen.value = false
@@ -110,18 +147,75 @@ const updateUnreadCount = () => {
   unreadCount.value = messages.filter(message => !message.read).length
 }
 
+// تابع برای باز/بسته کردن منوی کاربر
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value
+}
+
+// تابع برای بستن منوی کاربر با کلیک خارج از آن
+const closeUserMenu = () => {
+  isUserMenuOpen.value = false
+}
+
+// تابع برای خروج از سیستم
+const handleLogout = async () => {
+  try {
+    const { clearAuth } = useAuth()
+    
+    // پاک کردن اطلاعات از composable
+    clearAuth()
+    
+    // پاک کردن اطلاعات از localStorage
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('userType')
+    localStorage.removeItem('loginVerificationCode')
+    localStorage.removeItem('userMessages')
+    
+    // پاک کردن اطلاعات از sessionStorage
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('loginTime')
+    sessionStorage.removeItem('currentUser')
+    sessionStorage.removeItem('userType')
+    
+    // بستن منوی کاربر
+    closeUserMenu()
+    
+    // هدایت به صفحه لاگین
+    await router.replace('/login')
+  } catch (error) {
+    console.error('Error during logout:', error)
+  }
+}
+
+// تابع برای به‌روزرسانی اطلاعات کاربر
+const updateUserInfo = () => {
+  try {
+    const userData = JSON.parse(localStorage.getItem('currentUser') || 'null')
+    currentUser.value = userData
+  } catch (error) {
+    console.error('Error updating user info:', error)
+    currentUser.value = null
+  }
+}
+
 // به‌روزرسانی تعداد پیام‌ها در زمان لود صفحه
 onMounted(() => {
   updateUnreadCount()
-  // اضافه کردن event listener برای تغییرات در localStorage
-  window.addEventListener('storage', updateUnreadCount)
+  updateUserInfo()
+  window.addEventListener('storage', () => {
+    updateUnreadCount()
+    updateUserInfo()
+  })
   window.addEventListener('resize', handleResize)
-  handleResize() // Initial check
+  handleResize()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  window.removeEventListener('storage', updateUnreadCount)
+  window.removeEventListener('storage', () => {
+    updateUnreadCount()
+    updateUserInfo()
+  })
 })
 </script>
 
@@ -141,6 +235,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   z-index: 1000;
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
 }
 
 .sidebar-header {
@@ -204,6 +302,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-right: 250px;
 }
 
 .top-bar {
@@ -317,6 +416,23 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+
+.user-info:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+.user-info i {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  transition: transform 0.3s;
+}
+
+.user-info i.rotate {
+  transform: rotate(180deg);
 }
 
 .user-avatar {
@@ -337,17 +453,97 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  min-width: 200px;
+  z-index: 1000;
+  margin-top: 10px;
+}
+
+.user-dropdown-header {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-dropdown-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-dropdown-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-dropdown-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.user-dropdown-role {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: #eee;
+  margin: 5px 0;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  width: 100%;
+  border: none;
+  background: none;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: right;
+}
+
+.user-dropdown-item:hover {
+  background: #f8f9fa;
+  color: #e74c3c;
+}
+
+.user-dropdown-item i {
+  font-size: 1rem;
+}
+
+/* اضافه کردن استایل برای کلیک خارج از منو */
+.v-click-outside {
+  position: relative;
+}
+
 @media (max-width: 991.98px) {
   .sidebar {
+    transform: translateX(100%);
     position: fixed;
     top: 0;
-    right: -250px;
+    right: 0;
     height: 100vh;
     width: 250px;
   }
 
   .sidebar.show {
-    right: 0;
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-right: 0;
   }
 
   .navbar-toggler {
@@ -376,6 +572,37 @@ onUnmounted(() => {
 
   .nav-item span {
     font-size: 1rem;
+  }
+
+  .user-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    border-radius: 0;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+  }
+  
+  .user-dropdown-item {
+    padding: 15px;
+  }
+}
+
+@media (min-width: 992px) {
+  .sidebar {
+    position: fixed;
+    transform: none;
+  }
+
+  .main-content {
+    margin-right: 250px;
+  }
+
+  .navbar-toggler {
+    display: none;
   }
 }
 

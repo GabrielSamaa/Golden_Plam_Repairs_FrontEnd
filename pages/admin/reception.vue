@@ -186,7 +186,8 @@ import moment from 'moment-jalaali'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['admin']
 })
 
 const receptionSearch = ref('')

@@ -155,7 +155,8 @@ import moment from 'moment-jalaali'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
 
 definePageMeta({
-  layout: 'admin'
+  layout: 'admin',
+  middleware: ['admin']
 })
 
 const quickAmounts = [100000, 200000, 300000, 400000]
