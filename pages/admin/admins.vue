@@ -21,25 +21,25 @@
       <table class="table">
         <thead>
           <tr>
-            <th>نام کاربری</th>
+            <th>شماره تماس</th>
             <th>نام و نام خانوادگی</th>
             <th>تخصص</th>
             <th>وضعیت</th>
-            <th>آخرین ورود</th>
+            <th>تاریخ ثبت‌نام</th>
             <th>عملیات</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="repairman in filteredRepairmen" :key="repairman.id">
-            <td>{{ repairman.username }}</td>
+            <td>{{ repairman.phone }}</td>
             <td>{{ repairman.fullName }}</td>
-            <td>{{ repairman.specialty }}</td>
+            <td>{{ getSpecialtyText(repairman.specialty) }}</td>
             <td>
               <span :class="'status-' + repairman.status">
                 {{ getStatusText(repairman.status) }}
               </span>
             </td>
-            <td>{{ repairman.lastLogin }}</td>
+            <td>{{ formatDate(repairman.createdAt) }}</td>
             <td>
               <button class="btn btn-sm btn-outline-primary" @click="viewRepairman(repairman)">
                 <i class="fas fa-eye"></i>
@@ -66,12 +66,16 @@
         <div class="modal-body">
           <form @submit.prevent="submitRepairmanForm">
             <div class="form-group">
-              <label>نام کاربری</label>
+              <label>شماره تماس</label>
               <input 
-                type="text" 
+                type="tel" 
                 class="form-control" 
-                v-model="repairmanForm.username" 
+                v-model="repairmanForm.phone" 
                 required
+                placeholder="09xxxxxxxxx"
+                pattern="09[0-9]{9}"
+                maxlength="11"
+                dir="ltr"
               >
             </div>
             <div class="form-group">
@@ -99,15 +103,6 @@
                 <option value="inactive">غیرفعال</option>
               </select>
             </div>
-            <div class="form-group" v-if="!isEditing">
-              <label>رمز عبور</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                v-model="repairmanForm.password" 
-                required
-              >
-            </div>
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="closeRepairmanForm">
                 انصراف
@@ -124,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 definePageMeta({
@@ -135,12 +130,12 @@ definePageMeta({
 const router = useRouter()
 const showRepairmanForm = ref(false)
 const isEditing = ref(false)
+const editingId = ref(null)
 const repairmanForm = ref({
-  username: '',
   fullName: '',
-  specialty: 'general',
-  status: 'active',
-  password: ''
+  phone: '',
+  specialty: 'mobile',
+  status: 'active'
 })
 
 const repairmen = ref([])
@@ -162,13 +157,34 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const getSpecialtyText = (specialty) => {
+  const specialtyMap = {
+    'mobile': 'موبایل',
+    'laptop': 'لپ‌تاپ',
+    'tablet': 'تبلت',
+    'general': 'عمومی'
+  }
+  return specialtyMap[specialty] || specialty
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'نامشخص'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fa-IR')
+}
+
 const viewRepairman = (repairman) => {
   router.push(`/repairman/${repairman.id}`)
 }
 
 const editRepairman = (repairman) => {
-  isEditing.value = true
-  repairmanForm.value = { ...repairman }
+  editingId.value = repairman.id
+  repairmanForm.value = {
+    fullName: repairman.fullName,
+    phone: repairman.phone,
+    specialty: repairman.specialty,
+    status: repairman.status
+  }
   showRepairmanForm.value = true
 }
 
@@ -182,33 +198,47 @@ const deleteRepairman = (id) => {
 const closeRepairmanForm = () => {
   showRepairmanForm.value = false
   isEditing.value = false
+  editingId.value = null
   repairmanForm.value = {
-    username: '',
     fullName: '',
-    specialty: 'general',
-    status: 'active',
-    password: ''
+    phone: '',
+    specialty: 'mobile',
+    status: 'active'
   }
 }
 
 const submitRepairmanForm = () => {
+  // Validate phone number
+  if (!repairmanForm.value.phone.match(/^09[0-9]{9}$/)) {
+    alert('لطفاً شماره تماس را به درستی وارد کنید')
+    return
+  }
+
   if (isEditing.value) {
     // Update existing repairman
-    const index = repairmen.value.findIndex(r => r.id === repairmanForm.value.id)
+    const index = repairmen.value.findIndex(r => r.id === editingId.value)
     if (index !== -1) {
-      repairmen.value[index] = { ...repairmanForm.value }
+      repairmen.value[index] = {
+        ...repairmen.value[index],
+        fullName: repairmanForm.value.fullName,
+        phone: repairmanForm.value.phone,
+        specialty: repairmanForm.value.specialty,
+        status: repairmanForm.value.status
+      }
     }
   } else {
     // Add new repairman
     const newRepairman = {
-      ...repairmanForm.value,
       id: Date.now(),
-      lastLogin: new Date().toLocaleString('fa-IR')
+      fullName: repairmanForm.value.fullName,
+      phone: repairmanForm.value.phone,
+      specialty: repairmanForm.value.specialty,
+      status: repairmanForm.value.status,
+      createdAt: new Date().toISOString()
     }
-    repairmen.value.push(newRepairman)
+    repairmen.value.unshift(newRepairman)
   }
-  
-  // Save to localStorage
+
   localStorage.setItem('repairmen', JSON.stringify(repairmen.value))
   closeRepairmanForm()
 }
@@ -217,12 +247,28 @@ const filteredRepairmen = computed(() => {
   if (!searchQuery.value) return repairmen.value
   const query = searchQuery.value.toLowerCase()
   return repairmen.value.filter(repairman => 
-    repairman.username.toLowerCase().includes(query) ||
+    repairman.phone.toLowerCase().includes(query) ||
     repairman.fullName.toLowerCase().includes(query) ||
     repairman.specialty.toLowerCase().includes(query) ||
-    repairman.status.toLowerCase().includes(query) ||
-    repairman.lastLogin.toLowerCase().includes(query)
+    repairman.status.toLowerCase().includes(query)
   )
+})
+
+// Add phone number validation
+watch(() => repairmanForm.value.phone, (newValue) => {
+  let cleaned = newValue.replace(/\D/g, '')
+  
+  if (!cleaned.startsWith('09') && cleaned.length > 0) {
+    cleaned = '09' + cleaned
+  }
+  
+  if (cleaned.length > 11) {
+    cleaned = cleaned.slice(0, 11)
+  }
+  
+  if (cleaned !== newValue) {
+    repairmanForm.value.phone = cleaned
+  }
 })
 </script>
 

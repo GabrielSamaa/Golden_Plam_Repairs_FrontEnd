@@ -1,625 +1,504 @@
 <template>
-  <div class="verify-page" v-if="isPageReady">
-    <div class="verify-container">
-      <div class="verify-header">
+  <div class="verification-page">
+    <div class="verification-container">
+      <div class="verification-header">
         <h2>تأیید تحویل دستگاه</h2>
-        <div class="device-info">
-          <div class="info-section">
-            <h4>اطلاعات دستگاه:</h4>
-            <p>نوع دستگاه: {{ repair.deviceType }}</p>
-            <p>شماره پیگیری: {{ repair.trackingNumber }}</p>
-          </div>
-          <div class="info-section">
-            <h4>اطلاعات مشتری:</h4>
-            <p>نام مشتری: {{ repair.customerName }}</p>
-            <p>شماره تماس: {{ formatPhoneNumber(repair.phone) }}</p>
-          </div>
-        </div>
+        <button class="cancel-btn" @click="cancelDelivery">
+          <i class="fas fa-times"></i>
+          لغو
+        </button>
       </div>
 
-      <div class="verify-form">
-        <!-- دکمه ارسال کد -->
-        <div class="send-code-section" v-if="!codeSent">
-          <p class="text-muted mb-3">
-            کد تأیید به شماره {{ formatPhoneNumber(repair.phone) }} ارسال خواهد شد.
-          </p>
-          <button 
-            class="btn btn-info" 
-            @click="sendVerificationCode"
-            :disabled="isSendingCode || !repair.phone || resendTimer > 0"
-          >
-            <span v-if="isSendingCode">
-              <i class="fas fa-spinner fa-spin"></i>
-              در حال ارسال...
-            </span>
-            <span v-else-if="resendTimer > 0">
-              <i class="fas fa-clock"></i>
-              ارسال مجدد ({{ formatTime(resendTimer) }})
-            </span>
-            <span v-else>
-              <i class="fas fa-paper-plane"></i>
-              ارسال کد تأیید
-            </span>
-          </button>
-          <p class="text-danger mt-2" v-if="!repair.phone">
-            شماره تماس مشتری در دسترس نیست
-          </p>
+      <div v-if="currentRepair" class="repair-info">
+        <div class="info-section">
+          <h3>اطلاعات تعمیر</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>شماره پیگیری:</label>
+              <span>{{ currentRepair.trackingNumber }}</span>
+            </div>
+            <div class="info-item">
+              <label>نام مشتری:</label>
+              <span>{{ currentRepair.customerName }}</span>
+            </div>
+            <div class="info-item">
+              <label>نوع دستگاه:</label>
+              <span>{{ currentRepair.deviceType }}</span>
+            </div>
+            <div class="info-item">
+              <label>مبلغ:</label>
+              <span>{{ currentRepair.statement.toLocaleString() }} تومان</span>
+            </div>
+          </div>
         </div>
 
-        <!-- فرم وارد کردن کد -->
-        <div class="form-group" v-if="codeSent">
-          <label>کد تأیید پیامک شده را وارد کنید:</label>
-          <input 
-            type="text" 
-            v-model="smsCode" 
-            class="form-control"
-            placeholder="کد 6 رقمی"
-            maxlength="6"
-            :class="{ 'is-invalid': error }"
-          >
-          <div class="invalid-feedback" v-if="error">
-            {{ error }}
+        <div v-if="!currentRepair.deliveredToCustomer" class="verification-section">
+          <div class="verification-info">
+            <p class="test-code-hint">کد تست: 123456</p>
           </div>
-          <button 
-            class="btn btn-link mt-2" 
-            @click="resendCode"
-            :disabled="isSendingCode || resendTimer > 0"
-          >
-            <span v-if="resendTimer > 0">
-              ارسال مجدد ({{ formatTime(resendTimer) }})
-            </span>
-            <span v-else>
-              ارسال مجدد کد
-            </span>
-          </button>
-        </div>
-
-        <div class="verify-actions" v-if="codeSent">
-          <button 
-            class="btn btn-primary" 
-            @click="verifyCode"
-            :disabled="isLoading || !smsCode"
-          >
-            <span v-if="isLoading">
-              <i class="fas fa-spinner fa-spin"></i>
-              در حال بررسی...
-            </span>
-            <span v-else>
-              <i class="fas fa-check"></i>
-              تأیید کد
-            </span>
-          </button>
-          <button 
-            class="btn btn-secondary" 
-            @click="goBack"
-          >
-            <i class="fas fa-arrow-right"></i>
-            بازگشت
-          </button>
-        </div>
-      </div>
-
-      <!-- مودال تأیید نهایی -->
-      <div class="modal" v-if="showFinalConfirm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>تأیید نهایی تحویل</h3>
-          </div>
-          <div class="modal-body">
-            <p>آیا از تحویل دستگاه به مشتری اطمینان دارید؟</p>
-            <p class="text-muted">این عملیات غیرقابل بازگشت است.</p>
-          </div>
-          <div class="modal-footer">
-            <button 
-              class="btn btn-success" 
-              @click="confirmDelivery"
-              :disabled="isConfirming"
-            >
-              <span v-if="isConfirming">
-                <i class="fas fa-spinner fa-spin"></i>
-                در حال ثبت...
-              </span>
-              <span v-else>
+          
+          <div class="code-input-section">
+            <div class="input-group">
+              <input 
+                type="text" 
+                v-model="verificationCode"
+                placeholder="کد تأیید را وارد کنید"
+                maxlength="6"
+                :disabled="isVerifying"
+                @keyup.enter="verifyCode"
+              >
+              <button 
+                class="verify-btn" 
+                @click="verifyCode"
+                :disabled="isVerifying || !verificationCode"
+              >
                 <i class="fas fa-check"></i>
-                تأیید تحویل
-              </span>
-            </button>
-            <button 
-              class="btn btn-secondary" 
-              @click="showFinalConfirm = false"
-            >
-              انصراف
-            </button>
+                تأیید
+              </button>
+            </div>
+            
+            <div v-if="errorMessage" class="error-message">
+              {{ errorMessage }}
+            </div>
+            
+            <div v-if="successMessage" class="success-message">
+              {{ successMessage }}
+            </div>
           </div>
         </div>
+
+        <div v-else class="delivered-message">
+          <i class="fas fa-check-circle"></i>
+          <p>این دستگاه قبلاً به مشتری تحویل داده شده است</p>
+        </div>
+      </div>
+
+      <div v-else class="error-container">
+        <i class="fas fa-exclamation-circle"></i>
+        <p>{{ errorMessage || 'اطلاعات تعمیر یافت نشد' }}</p>
+        <button class="back-btn" @click="navigateTo('/admin/admin_counter')">
+          بازگشت به لیست
+        </button>
       </div>
     </div>
-  </div>
-  <div v-else class="loading-page">
-    <div class="spinner"></div>
-    <p>در حال بارگذاری...</p>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from '#app'
+import { ref, onMounted } from 'vue'
+import { navigateTo } from 'nuxt/app'
 
-definePageMeta({
-  layout: 'admin'
-})
-
-const route = useRoute()
-const repair = ref({})
-const smsCode = ref('')
-const error = ref('')
-const isLoading = ref(false)
-const isConfirming = ref(false)
-const showFinalConfirm = ref(false)
-const isPageReady = ref(false)
-const codeSent = ref(false)
-const isSendingCode = ref(false)
-const resendTimer = ref(0)
-let timerInterval = null
+const verificationCode = ref('')
+const errorMessage = ref('')
+const successMessage = ref('')
+const currentRepair = ref(null)
+const verificationAttempts = ref(0)
+const lastAttemptTime = ref(null)
+const isVerifying = ref(false)
+const TEST_CODE = '123456'
 
 // بارگذاری اطلاعات تعمیر
 onMounted(() => {
   try {
-    // اول از localStorage بخوانیم
-    const savedRepair = localStorage.getItem('currentDeliveryRepair')
-    if (savedRepair) {
-      repair.value = JSON.parse(savedRepair)
-      isPageReady.value = true
+    const repairData = localStorage.getItem('currentDeliveryRepair')
+    if (!repairData) {
+      errorMessage.value = 'اطلاعات تعمیر یافت نشد'
       return
     }
 
-    // اگر در localStorage نبود، از query parameters بخوانیم
-    const repairId = route.query.id
-    if (!repairId) {
-      window.location.href = '/admin/admin_counter'
-      return
-    }
+    currentRepair.value = JSON.parse(repairData)
+    verificationAttempts.value = currentRepair.value.verificationAttempts || 0
+    lastAttemptTime.value = currentRepair.value.lastVerificationAttempt || null
 
-    const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-    const foundRepair = repairs.find(r => r.id === repairId)
-    
-    if (!foundRepair) {
-      window.location.href = '/admin/admin_counter'
-      return
+    if (currentRepair.value.deliveredToCustomer) {
+      errorMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است'
     }
-
-    repair.value = foundRepair
-    isPageReady.value = true
   } catch (error) {
     console.error('Error loading repair data:', error)
-    window.location.href = '/admin/admin_counter'
+    errorMessage.value = 'خطا در بارگذاری اطلاعات تعمیر'
   }
 })
 
-// فرمت کردن شماره تماس
-const formatPhoneNumber = (phone) => {
-  if (!phone) return 'نامشخص'
-  // حذف همه کاراکترهای غیر عددی
-  const cleaned = phone.replace(/\D/g, '')
-  // اگر شماره با 0 شروع شده، آن را حذف کن
-  const number = cleaned.startsWith('0') ? cleaned.slice(1) : cleaned
-  // فرمت کردن شماره به صورت 09XX XXX XXXX
-  return number.replace(/(\d{4})(\d{3})(\d{4})/, '09$1 $2 $3')
-}
-
-// فرمت کردن زمان به دقیقه و ثانیه
-const formatTime = (seconds) => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-// شروع تایمر
-const startResendTimer = () => {
-  resendTimer.value = 120 // 2 دقیقه
-  if (timerInterval) clearInterval(timerInterval)
-  
-  timerInterval = setInterval(() => {
-    if (resendTimer.value > 0) {
-      resendTimer.value--
-    } else {
-      clearInterval(timerInterval)
-    }
-  }, 1000)
-}
-
-// ارسال کد تأیید
-const sendVerificationCode = async () => {
-  if (!repair.value || !repair.value.phone) {
-    error.value = 'شماره تماس مشتری در دسترس نیست'
-    return
-  }
-
-  isSendingCode.value = true
-  error.value = ''
-
-  try {
-    // تولید کد تصادفی 6 رقمی
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
-    
-    // در اینجا باید کد را به سرور ارسال کنید و از آنجا پیامک شود
-    const smsText = `کد تأیید تحویل دستگاه شما: ${verificationCode}\nشماره پیگیری: ${repair.value.trackingNumber}\nتعمیرگاه طلایی پالم`
-    
-    // ذخیره کد در اطلاعات تعمیر
-    repair.value.smsCode = verificationCode
-    repair.value.lastSmsSent = new Date().toLocaleString('fa-IR')
-    localStorage.setItem('currentDeliveryRepair', JSON.stringify(repair.value))
-    
-    // به‌روزرسانی در لیست اصلی تعمیرات
-    const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-    const index = repairs.findIndex(r => r.id === repair.value.id)
-    if (index !== -1) {
-      repairs[index] = repair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs))
-    }
-
-    // نمایش پیام موفقیت
-    alert(`کد تأیید به شماره ${formatPhoneNumber(repair.value.phone)} ارسال شد.\n\nمتن پیامک:\n${smsText}`)
-    codeSent.value = true
-    startResendTimer()
-  } catch (err) {
-    error.value = 'خطا در ارسال کد تأیید'
-    console.error('Error sending verification code:', err)
-  } finally {
-    isSendingCode.value = false
-  }
-}
-
-// ارسال مجدد کد
-const resendCode = () => {
-  if (resendTimer.value > 0) return
-  codeSent.value = false
-  smsCode.value = ''
-  sendVerificationCode()
-}
-
-// بررسی کد پیامک
+// بررسی کد تأیید
 const verifyCode = async () => {
-  if (!smsCode.value || smsCode.value.length !== 6) {
-    error.value = 'لطفاً کد 6 رقمی را وارد کنید'
-    return
-  }
-
-  isLoading.value = true
-  error.value = ''
-
-  try {
-    // در اینجا باید کد پیامک شده را از سرور یا localStorage بررسی کنید
-    const savedCode = repair.value.smsCode || '123456'
-    
-    if (smsCode.value === savedCode) {
-      showFinalConfirm.value = true
-    } else {
-      error.value = 'کد وارد شده صحیح نیست'
-    }
-  } catch (err) {
-    error.value = 'خطا در بررسی کد'
-    console.error('Error verifying code:', err)
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// تأیید نهایی تحویل
-const confirmDelivery = () => {
-  if (!repair.value || !repair.value.id) {
-    error.value = 'اطلاعات تعمیر نامعتبر است'
-    return
-  }
-
-  isConfirming.value = true
+  if (isVerifying.value) return
   
   try {
-    const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-    const index = repairs.findIndex(r => r.id === repair.value.id)
-    
-    if (index !== -1) {
-      const today = new Date().toLocaleDateString('fa-IR')
-      repairs[index] = {
-        ...repair.value,
-        deliveredToCustomer: true,
-        deliveryDate: today,
-        status: 'delivered',
-        verifiedDelivery: true
+    isVerifying.value = true
+    errorMessage.value = ''
+    successMessage.value = ''
+
+    if (!currentRepair.value) {
+      errorMessage.value = 'اطلاعات تعمیر یافت نشد'
+      return
+    }
+
+    if (currentRepair.value.deliveredToCustomer) {
+      errorMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است'
+      return
+    }
+
+    // بررسی تعداد تلاش‌ها
+    if (verificationAttempts.value >= 3) {
+      const timeSinceLastAttempt = Date.now() - (lastAttemptTime.value || 0)
+      const minutesToWait = 5
+      const remainingTime = Math.ceil((minutesToWait * 60 * 1000 - timeSinceLastAttempt) / 1000 / 60)
+      
+      if (timeSinceLastAttempt < minutesToWait * 60 * 1000) {
+        errorMessage.value = `به دلیل تلاش‌های ناموفق، لطفاً ${remainingTime} دقیقه دیگر مجدداً تلاش کنید`
+        return
+      } else {
+        verificationAttempts.value = 0
+        lastAttemptTime.value = null
+      }
+    }
+
+    // بررسی کد
+    if (verificationCode.value === TEST_CODE) {
+      successMessage.value = 'کد تأیید صحیح است'
+      
+      // به‌روزرسانی وضعیت تحویل
+      const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
+      const index = allRepairs.findIndex(r => r.id === currentRepair.value.id)
+      
+      if (index !== -1) {
+        const updatedRepair = {
+          ...currentRepair.value,
+          deliveredToCustomer: true,
+          deliveryDate: new Date().toLocaleDateString('fa-IR'),
+          deliveryTime: new Date().toLocaleTimeString('fa-IR')
+        }
+        
+        allRepairs[index] = updatedRepair
+        localStorage.setItem('receptions', JSON.stringify(allRepairs))
+        
+        if (updatedRepair.repairmanId) {
+          const repairmanRepairs = allRepairs.filter(r => r.repairmanId === updatedRepair.repairmanId)
+          localStorage.setItem(`repairman_${updatedRepair.repairmanId}_repairs`, JSON.stringify(repairmanRepairs))
+        }
+        
+        localStorage.removeItem('currentDeliveryRepair')
+        localStorage.removeItem(`delivery_verification_${currentRepair.value.id}`)
+        
+        setTimeout(() => {
+          navigateTo('/admin/admin_counter')
+        }, 2000)
+      }
+    } else {
+      errorMessage.value = 'کد تأیید اشتباه است'
+      verificationAttempts.value++
+      lastAttemptTime.value = Date.now()
+      
+      if (currentRepair.value) {
+        currentRepair.value.verificationAttempts = verificationAttempts.value
+        currentRepair.value.lastVerificationAttempt = lastAttemptTime.value
+        localStorage.setItem('currentDeliveryRepair', JSON.stringify(currentRepair.value))
       }
       
-      localStorage.setItem('receptions', JSON.stringify(repairs))
-      // پاک کردن اطلاعات موقت
-      localStorage.removeItem('currentDeliveryRepair')
-      window.location.href = '/admin/admin_counter'
+      verificationCode.value = ''
     }
-  } catch (err) {
-    error.value = 'خطا در ثبت تحویل'
-    console.error('Error confirming delivery:', err)
+  } catch (error) {
+    console.error('Error in verification:', error)
+    errorMessage.value = 'خطا در بررسی کد تأیید'
   } finally {
-    isConfirming.value = false
+    isVerifying.value = false
   }
 }
 
-// بازگشت به صفحه قبل
-const goBack = () => {
-  // پاک کردن اطلاعات موقت
-  localStorage.removeItem('currentDeliveryRepair')
-  window.location.href = '/admin/admin_counter'
-}
-
-// پاکسازی تایمر هنگام خروج از کامپوننت
-onUnmounted(() => {
-  if (timerInterval) {
-    clearInterval(timerInterval)
+const cancelDelivery = () => {
+  if (confirm('آیا از لغو فرآیند تحویل اطمینان دارید؟')) {
+    try {
+      localStorage.removeItem('currentDeliveryRepair')
+      navigateTo('/admin/admin_counter')
+    } catch (error) {
+      console.error('Error canceling delivery:', error)
+      errorMessage.value = 'خطا در لغو فرآیند تحویل'
+    }
   }
-})
+}
 </script>
 
 <style scoped>
-.verify-page {
+.verification-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
   padding: 20px;
+  background: #f8f9fa;
 }
 
-.verify-container {
+.verification-container {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
+  padding: 30px;
 }
 
-.verify-header {
-  text-align: center;
+.verification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
 }
 
-.device-info {
-  color: #666;
-  margin-top: 15px;
-  line-height: 1.6;
-}
-
-.verify-form {
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1.1rem;
-  text-align: center;
-  letter-spacing: 4px;
-}
-
-.form-control.is-invalid {
-  border-color: #dc3545;
-}
-
-.invalid-feedback {
-  color: #dc3545;
-  font-size: 0.9rem;
-  margin-top: 5px;
-}
-
-.verify-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.btn {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: #3498db;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.btn-secondary {
-  background: #95a5a6;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #7f8c8d;
-}
-
-.btn-success {
-  background: #2ecc71;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background: #27ae60;
-}
-
-/* مودال */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.modal-header h3 {
+.verification-header h2 {
   margin: 0;
   color: #2c3e50;
+  font-size: 1.5rem;
 }
 
-.modal-body {
-  padding: 20px;
-}
-
-.modal-footer {
-  padding: 20px;
-  border-top: 1px solid #eee;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.text-muted {
-  color: #95a5a6;
-  font-size: 0.9rem;
-  margin-top: 5px;
-}
-
-@media (max-width: 480px) {
-  .verify-container {
-    padding: 20px;
-  }
-
-  .btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-}
-
-.loading-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #f8f9fa;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.send-code-section {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-}
-
-.btn-info {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-info:hover:not(:disabled) {
-  background: #138496;
-}
-
-.btn-link {
-  color: #3498db;
-  text-decoration: none;
-  padding: 0;
-  font-size: 0.9rem;
+.cancel-btn {
   background: none;
   border: none;
+  color: #e74c3c;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.3s;
 }
 
-.btn-link:hover:not(:disabled) {
-  color: #2980b9;
-  text-decoration: underline;
+.cancel-btn:hover {
+  background: #fee2e2;
 }
 
-.btn-link:disabled {
-  color: #95a5a6;
-  cursor: not-allowed;
-}
-
-.mb-3 {
-  margin-bottom: 1rem;
-}
-
-.mt-2 {
-  margin-top: 0.5rem;
+.repair-info {
+  margin-bottom: 30px;
 }
 
 .info-section {
   background: #f8f9fa;
-  padding: 15px;
   border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.info-section h3 {
+  margin: 0 0 15px 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-item label {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.info-item span {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.verification-section {
+  margin-top: 30px;
+}
+
+.verification-info {
+  margin-bottom: 20px;
+}
+
+.test-code-hint {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+  margin: 0;
+}
+
+.code-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  text-align: center;
+  letter-spacing: 2px;
+  transition: all 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.verify-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.verify-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.success-message {
+  background: #dcfce7;
+  color: #16a34a;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.delivered-message {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  color: #7f8c8d;
+}
+
+.delivered-message i {
+  font-size: 2rem;
+  color: #2ecc71;
+  margin-bottom: 10px;
+}
+
+.error-container {
+  text-align: center;
+  padding: 30px;
+}
+
+.error-container i {
+  font-size: 3rem;
+  color: #e74c3c;
   margin-bottom: 15px;
 }
 
-.info-section h4 {
-  color: #2c3e50;
-  margin-bottom: 10px;
-  font-size: 1rem;
+.back-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: all 0.3s;
 }
 
-.info-section p {
-  margin: 5px 0;
-  color: #666;
-  line-height: 1.6;
+.back-btn:hover {
+  background: #2980b9;
 }
 
-.text-danger {
-  color: #dc3545;
-  font-size: 0.9rem;
+@media (max-width: 640px) {
+  .verification-container {
+    padding: 20px;
+  }
+
+  .input-group {
+    flex-direction: column;
+  }
+
+  .verify-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .verification-page {
+    background: #1a1a1a;
+  }
+
+  .verification-container {
+    background: #2c2c2c;
+  }
+
+  .verification-header h2 {
+    color: #ffffff;
+  }
+
+  .info-section {
+    background: #1a1a1a;
+  }
+
+  .info-item label {
+    color: #a0a0a0;
+  }
+
+  .info-item span {
+    color: #ffffff;
+  }
+
+  .test-code-hint {
+    background: #2c2c2c;
+    color: #ffd700;
+  }
+
+  .input-group input {
+    background: #1a1a1a;
+    border-color: #4a4a4a;
+    color: #ffffff;
+  }
+
+  .input-group input:focus {
+    border-color: #3498db;
+  }
+
+  .delivered-message {
+    background: #1a1a1a;
+    color: #a0a0a0;
+  }
+
+  .error-message {
+    background: #2c1a1a;
+    color: #ff6b6b;
+  }
+
+  .success-message {
+    background: #1a2c1a;
+    color: #6bff6b;
+  }
 }
 </style>

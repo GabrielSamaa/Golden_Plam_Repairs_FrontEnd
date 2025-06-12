@@ -153,10 +153,34 @@
 import { ref, computed, onMounted } from "vue"
 import moment from 'moment-jalaali'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
+import { useRouter } from 'nuxt/app'
+
+const router = useRouter()
 
 definePageMeta({
   layout: 'admin',
-  middleware: ['admin']
+  middleware: [
+    function (to, from) {
+      // Only run on client-side
+      if (process.client) {
+        try {
+          // Check if user is logged in as admin
+          const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
+          const userType = localStorage.getItem('userType')
+          
+          // If not logged in or not an admin, redirect to login
+          if (!currentUser || userType !== 'admin') {
+            return navigateTo('/login')
+          }
+        } catch (error) {
+          // If any error occurs (like localStorage not available), redirect to login
+          return navigateTo('/login')
+        }
+      }
+      // Allow access on server-side, the check will happen on client-side
+      return true
+    }
+  ]
 })
 
 const quickAmounts = [100000, 200000, 300000, 400000]

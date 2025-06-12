@@ -1,7 +1,63 @@
 <template>
   <div class="repairs-page">
+    <!-- Desktop User Icon -->
+    <div class="desktop-user-icon" @click="toggleSidebar" v-if="currentRepairman">
+      <i class="fas fa-user-circle"></i>
+      <span class="user-icon-tooltip">پنل تعمیرکار</span>
+    </div>
+
+    <!-- Hamburger Menu Button (Mobile Only) -->
+    <button class="menu-toggle" @click="toggleSidebar">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" :class="{ 'sidebar-open': isSidebarOpen }">
+      <div class="sidebar-header">
+        <h2>پنل تعمیرکار</h2>
+        <button class="close-sidebar" @click="toggleSidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="sidebar-content" v-if="currentRepairman">
+        <div class="profile-section">
+          <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="profile-info">
+            <h3>{{ currentRepairman.fullName }}</h3>
+            <div class="profile-details">
+              <div class="detail-item">
+                <i class="fas fa-phone"></i>
+                <span>{{ currentRepairman.phone }}</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-tools"></i>
+                <span>{{ getSpecialtyText(currentRepairman.specialty) }}</span>
+              </div>
+              <div class="detail-item">
+                <i class="fas fa-circle" :class="'status-' + currentRepairman.status"></i>
+                <span>{{ getStatusText(currentRepairman.status) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-actions">
+          <button class="btn btn-danger logout-btn" @click="handleLogout">
+            <i class="fas fa-sign-out-alt"></i>
+            خروج از حساب کاربری
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" v-if="isSidebarOpen" @click="toggleSidebar"></div>
+
     <div class="page-header">
-      <h2>لیست تعمیرات</h2>
+      <div class="header-content">
+        <h2>لیست تعمیرات</h2>
+      </div>
       <div class="filters">
         <div class="search-box">
           <input 
@@ -124,22 +180,82 @@
           </div>
 
           <div class="modal-actions">
-            <button class="btn btn-primary" @click="startRepair" v-if="selectedRepair.status === 'pending'">
-              <i class="fas fa-tools"></i>
-              شروع تعمیر
+            <button 
+              v-for="action in modalActions" 
+              :key="action.text"
+              :class="['btn', action.class]"
+              @click="action.action"
+            >
+              <i :class="action.icon"></i>
+              {{ action.text }}
             </button>
-            <button class="btn btn-info" @click="continueRepair" v-if="selectedRepair.status === 'in-progress'">
-              <i class="fas fa-wrench"></i>
-              ادامه تعمیر
-            </button>
-            <button class="btn btn-success" @click="completeRepair" v-if="selectedRepair.status === 'in-progress'">
-              <i class="fas fa-check"></i>
-              تکمیل تعمیر
-            </button>
-            <button class="btn btn-warning" @click="revertToInProgress" v-if="selectedRepair.status === 'completed'">
-              <i class="fas fa-undo"></i>
-              بازگشت به حالت در حال انجام
-            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parts List Modal -->
+    <div class="modal" :class="{ show: showPartsModal }" @click.self="closePartsModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>لیست قطعات تعویض شده</h3>
+          <button class="close-btn" @click="closePartsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="parts-list" v-if="selectedRepairParts.length > 0">
+            <div class="part-item" v-for="part in selectedRepairParts" :key="part.id">
+              <div class="part-info">
+                <span class="part-name">{{ part.name }}</span>
+                <span class="part-price">{{ part.price.toLocaleString() }} تومان</span>
+              </div>
+              <div class="part-description">{{ part.description }}</div>
+            </div>
+          </div>
+          <div class="no-parts" v-else>
+            <i class="fas fa-tools"></i>
+            <p>هیچ قطعه‌ای ثبت نشده است</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div class="modal" :class="{ show: showCustomerModal }" @click.self="closeCustomerModal">
+      <div class="modal-content" v-if="selectedRepair">
+        <div class="modal-header">
+          <h3>مشخصات مشتری</h3>
+          <button class="close-btn" @click="closeCustomerModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="customer-details">
+            <div class="detail-item">
+              <label>نام مشتری:</label>
+              <span>{{ selectedRepair?.customerName || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item">
+              <label>شماره تماس:</label>
+              <span>{{ selectedRepair?.phone || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item">
+              <label>نوع دستگاه:</label>
+              <span>{{ selectedRepair?.deviceType || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item">
+              <label>دسته‌بندی:</label>
+              <span>{{ selectedRepair?.category || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item">
+              <label>تاریخ پذیرش:</label>
+              <span>{{ selectedRepair?.receptionDate || selectedRepair?.date || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item">
+              <label>تاریخ تکمیل:</label>
+              <span>{{ selectedRepair?.completionDate || 'نامشخص' }}</span>
+            </div>
+            <div class="detail-item full-width">
+              <label>توضیحات:</label>
+              <p class="description">{{ selectedRepair?.issue || 'توضیحاتی ثبت نشده است' }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -148,8 +264,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { navigateTo, useRouter } from 'nuxt/app'
+import { useAuth } from '~/composables/useAuth'
 
 const repairs = ref([])
 const searchQuery = ref('')
@@ -158,93 +275,111 @@ const showModal = ref(false)
 const selectedRepair = ref(null)
 const currentRepairman = ref(null)
 const router = useRouter()
+const { clearAuth } = useAuth()
+const isSidebarOpen = ref(false)
+
+// Add new refs for modals
+const showPartsModal = ref(false)
+const showCustomerModal = ref(false)
+const selectedRepairParts = ref([])
 
 // Load repairs from localStorage
 onMounted(() => {
+  console.log('Component mounted, checking repairman data...')
+  
   // Get current repairman from localStorage
   const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
   const currentRepairmanId = localStorage.getItem('currentRepairmanId')
   
+  console.log('Current repairman ID:', currentRepairmanId)
+  console.log('Available repairmen:', repairmen)
+  
   if (currentRepairmanId) {
-    currentRepairman.value = repairmen.find(r => r.id === Number(currentRepairmanId))
+    const foundRepairman = repairmen.find(r => r.id === Number(currentRepairmanId))
+    console.log('Found repairman:', foundRepairman)
     
-    if (currentRepairman.value) {
-      // Load repairs and filter by current repairman
+    if (foundRepairman) {
+      currentRepairman.value = {
+        id: foundRepairman.id,
+        fullName: foundRepairman.fullName || foundRepairman.name,
+        phone: foundRepairman.phone,
+        specialty: foundRepairman.specialty || 'general',
+        status: foundRepairman.status || 'active'
+      }
+      console.log('Set current repairman:', currentRepairman.value)
+      
+      // Load repairs from both sources
       const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      repairs.value = savedRepairs.filter(repair => repair.repairmanId === currentRepairman.value.id)
+      const repairmanSpecificRepairs = JSON.parse(localStorage.getItem(`repairman_${currentRepairman.value.id}_repairs`) || '[]')
+      
+      // Merge repairs, preferring repairman-specific data if available
+      const mergedRepairs = savedRepairs.map(repair => {
+        const repairmanRepair = repairmanSpecificRepairs.find(r => r.id === repair.id)
+        return repairmanRepair || repair
+      })
+      
+      // Filter by current repairman and update repairs
+      repairs.value = mergedRepairs.filter(repair => repair.repairmanId === currentRepairman.value.id)
+      console.log('Loaded repairs:', repairs.value)
     } else {
-      // If repairman not found, redirect to login
+      console.log('Repairman not found, redirecting to login...')
       router.push('/login')
     }
   } else {
-    // If no repairman is logged in, redirect to login
+    console.log('No repairman ID found, redirecting to login...')
     router.push('/login')
   }
 })
 
+// Add a watch to monitor repairs changes
+watch(repairs, (newRepairs) => {
+  console.log('Repairs updated:', newRepairs)
+}, { deep: true })
+
 const filteredRepairs = computed(() => {
   try {
     let result = repairs.value.filter(repair => {
+      // اگر جستجویی انجام نشده، همه را نمایش بده
+      if (!searchQuery.value) {
+        return statusFilter.value === 'all' || repair.status === statusFilter.value
+      }
+
+      const searchLower = searchQuery.value.toLowerCase()
       const matchesSearch = 
-        repair.customerName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        repair.trackingNumber.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        repair.deviceType.toLowerCase().includes(searchQuery.value.toLowerCase())
+        repair.customerName?.toLowerCase().includes(searchLower) ||
+        repair.trackingNumber?.toLowerCase().includes(searchLower) ||
+        repair.deviceType?.toLowerCase().includes(searchLower) ||
+        repair.phone?.toLowerCase().includes(searchLower) ||
+        repair.category?.toLowerCase().includes(searchLower) ||
+        repair.issue?.toLowerCase().includes(searchLower)
       
       const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
       
       return matchesSearch && matchesStatus
     })
 
-    // Sort repairs based on status and delivery date
+    // Sort repairs based on status and dates
     return result.sort((a, b) => {
-      try {
-        // First priority: status (pending > in-progress > completed)
-        const statusOrder = { 'pending': 0, 'in-progress': 1, 'completed': 2 }
-        if (statusOrder[a.status] !== statusOrder[b.status]) {
-          return statusOrder[a.status] - statusOrder[b.status]
-        }
-
-        // Helper function to convert date string to comparable format
-        const convertDate = (dateStr) => {
-          if (!dateStr) return '99999999' // Far future date for sorting
-          try {
-            // Handle both receptionDate and deliveryDate formats
-            const parts = dateStr.split('/')
-            if (parts.length === 3) {
-              // Ensure all parts are numbers and pad with zeros if needed
-              return parts.map(part => part.padStart(2, '0')).join('')
-            }
-            return '99999999'
-          } catch {
-            return '99999999'
-          }
-        }
-
-        // Second priority: delivery date proximity
-        const dateA = convertDate(a.deliveryDate)
-        const dateB = convertDate(b.deliveryDate)
-        
-        // If both have delivery dates, compare them
-        if (dateA !== '99999999' && dateB !== '99999999') {
-          return dateA.localeCompare(dateB)
-        }
-
-        // If only one has delivery date, prioritize it
-        if (dateA !== '99999999') return -1
-        if (dateB !== '99999999') return 1
-
-        // If neither has delivery date, sort by reception date
-        const receptionDateA = convertDate(a.receptionDate || a.date)
-        const receptionDateB = convertDate(b.receptionDate || b.date)
-        return receptionDateA.localeCompare(receptionDateB)
-      } catch (error) {
-        console.error('Error sorting repairs:', error)
-        return 0 // Keep original order if sorting fails
+      // First priority: status (pending > in-progress > completed)
+      const statusOrder = { 'pending': 0, 'in-progress': 1, 'completed': 2 }
+      if (statusOrder[a.status] !== statusOrder[b.status]) {
+        return statusOrder[a.status] - statusOrder[b.status]
       }
+
+      // Second priority: admin marked ready
+      if (a.adminMarkedReady !== b.adminMarkedReady) {
+        return a.adminMarkedReady ? 1 : -1
+      }
+
+      // Third priority: dates
+      const getDate = (repair) => {
+        return repair.completionDate || repair.receptionDate || repair.date || ''
+      }
+      return getDate(b).localeCompare(getDate(a))
     })
   } catch (error) {
     console.error('Error filtering repairs:', error)
-    return repairs.value // Return original array if filtering fails
+    return repairs.value
   }
 })
 
@@ -258,6 +393,16 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const getSpecialtyText = (specialty) => {
+  const specialtyMap = {
+    'mobile': 'موبایل',
+    'laptop': 'لپ‌تاپ',
+    'tablet': 'تبلت',
+    'general': 'عمومی'
+  }
+  return specialtyMap[specialty] || specialty
+}
+
 const openRepairDetails = (repair) => {
   selectedRepair.value = repair
   showModal.value = true
@@ -265,6 +410,10 @@ const openRepairDetails = (repair) => {
 
 const closeModal = () => {
   showModal.value = false
+  showPartsModal.value = false
+  showCustomerModal.value = false
+  selectedRepairParts.value = []
+  // Only reset selectedRepair when closing the main modal
   selectedRepair.value = null
 }
 
@@ -332,15 +481,139 @@ const revertToInProgress = () => {
     closeModal()
   }
 }
+
+const handleLogout = async () => {
+  // Ask for confirmation before logout
+  if (confirm('آیا از خروج از حساب کاربری خود اطمینان دارید؟')) {
+    // Clear all login-related data using the auth composable
+    clearAuth()
+    
+    // Clear any repair-related temporary data
+    const repairmanId = currentRepairman.value?.id
+    if (repairmanId) {
+      localStorage.removeItem(`repair_parts_${repairmanId}`)
+    }
+    
+    // Clear the current repairman data from memory
+    currentRepairman.value = null
+    
+    // Redirect to login page
+    await router.replace('/login')
+  }
+}
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
+// Add new methods for handling parts list and customer details
+const showPartsList = () => {
+  if (selectedRepair.value) {
+    const parts = JSON.parse(localStorage.getItem(`repair_parts_${selectedRepair.value.id}`) || '[]')
+    selectedRepairParts.value = parts
+    showPartsModal.value = true
+  }
+}
+
+const closePartsModal = () => {
+  showPartsModal.value = false
+  selectedRepairParts.value = []
+}
+
+const showCustomerDetails = () => {
+  if (!selectedRepair.value) {
+    console.error('No repair selected')
+    return
+  }
+  showCustomerModal.value = true
+}
+
+const closeCustomerModal = () => {
+  showCustomerModal.value = false
+  // Don't reset selectedRepair here as it might be needed for other modals
+}
+
+// Update the modal actions section in template
+const modalActions = computed(() => {
+  if (!selectedRepair.value) return []
+  
+  const actions = []
+  
+  if (selectedRepair.value.status === 'pending') {
+    actions.push({
+      text: 'شروع تعمیر',
+      icon: 'fas fa-tools',
+      class: 'btn-primary',
+      action: startRepair
+    })
+  }
+  
+  if (selectedRepair.value.status === 'in-progress') {
+    actions.push(
+      {
+        text: 'ادامه تعمیر',
+        icon: 'fas fa-wrench',
+        class: 'btn-info',
+        action: continueRepair
+      },
+      {
+        text: 'تکمیل تعمیر',
+        icon: 'fas fa-check',
+        class: 'btn-success',
+        action: completeRepair
+      }
+    )
+  }
+  
+  if (selectedRepair.value.status === 'completed') {
+    if (!selectedRepair.value.adminMarkedReady) {
+      actions.push({
+        text: 'بازگشت به حالت در حال انجام',
+        icon: 'fas fa-undo',
+        class: 'btn-warning',
+        action: revertToInProgress
+      })
+    } else {
+      actions.push(
+        {
+          text: 'لیست قطعات تعویض شده',
+          icon: 'fas fa-list',
+          class: 'btn-info',
+          action: showPartsList
+        },
+        {
+          text: 'مشخصات مشتری',
+          icon: 'fas fa-user',
+          class: 'btn-primary',
+          action: showCustomerDetails
+        }
+      )
+    }
+  }
+  
+  return actions
+})
 </script>
 
 <style scoped>
 .repairs-page {
   padding: 20px;
+  position: relative;
+  min-height: 100vh;
+  background: #f8f9fa;
+  transition: margin-right 0.3s ease;
 }
 
 .page-header {
   margin-bottom: 30px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1rem;
 }
 
 .filters {
@@ -469,6 +742,29 @@ const revertToInProgress = () => {
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+  position: relative;
+  min-height: 200px;
+}
+
+.modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal-content.loading::before {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal-header {
@@ -584,30 +880,553 @@ const revertToInProgress = () => {
   background: #f39c12;
 }
 
-@media (max-width: 768px) {
-  .filters {
-    flex-direction: column;
+/* Menu Toggle Button */
+.menu-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+}
+
+.menu-toggle i {
+  font-size: 1.3rem;
+}
+
+/* Sidebar */
+.sidebar {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 320px;
+  height: 100vh;
+  background: white;
+  box-shadow: -5px 0 25px rgba(0,0,0,0.1);
+  z-index: 1001;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  border-left: 1px solid rgba(0,0,0,0.05);
+}
+
+.sidebar-open {
+  right: 0;
+}
+
+.sidebar-header {
+  padding: 25px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to right, #f8f9fa, #ffffff);
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.close-sidebar {
+  background: none;
+  border: none;
+  color: #7f8c8d;
+  cursor: pointer;
+  font-size: 1.3rem;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-sidebar:hover {
+  color: #2c3e50;
+  background: #f8f9fa;
+}
+
+.sidebar-content {
+  padding: 25px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-section {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 25px;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.profile-avatar {
+  font-size: 4.5rem;
+  color: #3498db;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+.profile-info h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: right;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #2c3e50;
+  padding: 12px 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.detail-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.detail-item i {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3498db;
+  font-size: 1.1rem;
+}
+
+.detail-item i.status-active {
+  color: #2ecc71;
+}
+
+.detail-item i.status-inactive {
+  color: #e74c3c;
+}
+
+.sidebar-actions {
+  margin-top: auto;
+  padding: 20px 0;
+}
+
+.logout-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.2);
+}
+
+.logout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 53, 69, 0.3);
+}
+
+.logout-btn i {
+  font-size: 1.2rem;
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.sidebar-open + .sidebar-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Desktop User Icon */
+.desktop-user-icon {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(52, 152, 219, 0.2);
+  transition: all 0.3s ease;
+}
+
+.desktop-user-icon i {
+  font-size: 1.8rem;
+  color: white;
+}
+
+.desktop-user-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+}
+
+.user-icon-tooltip {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-right: 10px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.desktop-user-icon:hover .user-icon-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(-5px);
+}
+
+/* Update Desktop Styles */
+@media (min-width: 1024px) {
+  .menu-toggle {
+    display: none;
   }
-  
-  .search-box {
-    max-width: 100%;
+
+  .desktop-user-icon {
+    display: flex;
   }
-  
-  .repairs-grid {
-    grid-template-columns: 1fr;
+
+  .sidebar {
+    right: -350px;
+    width: 350px;
+    transition: right 0.3s ease;
   }
-  
-  .modal-content {
-    width: 95%;
-    margin: 10px;
+
+  .sidebar.sidebar-open {
+    right: 0;
   }
-  
-  .detail-grid {
-    grid-template-columns: 1fr;
+
+  .close-sidebar {
+    display: flex !important;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border: none;
+    border-radius: 50%;
+    color: #7f8c8d;
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
-  
-  .date-info {
-    font-size: 0.8rem;
+
+  .close-sidebar:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+  }
+
+  .close-sidebar i {
+    font-size: 1.2rem;
+  }
+
+  .sidebar-header {
+    padding: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+  }
+
+  .repairs-page {
+    margin-right: 0;
+    padding-right: 20px;
+    transition: margin-right 0.3s ease;
+    padding-top: 70px; /* Add space for the user icon */
+  }
+
+  .sidebar-open ~ .repairs-page {
+    margin-right: 350px;
+    padding-right: 370px;
+  }
+
+  /* Hide user icon when sidebar is open */
+  .sidebar-open ~ .desktop-user-icon {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sidebar {
+    width: 300px;
+  }
+
+  .repairs-page {
+    margin-right: 300px;
+    padding-right: 320px;
+  }
+
+  .profile-section {
+    padding: 20px;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 767px) {
+  .repairs-page {
+    margin-right: 0;
+    padding: 20px;
+    padding-top: 80px;
+  }
+
+  .page-header {
+    margin-top: 0;
+  }
+
+  .sidebar {
+    width: 85%;
+    max-width: 320px;
+  }
+
+  .profile-section {
+    padding: 20px;
+  }
+
+  .profile-avatar {
+    font-size: 4rem;
+  }
+
+  .profile-info h3 {
+    font-size: 1.2rem;
+  }
+
+  .detail-item {
+    padding: 10px 15px;
+  }
+
+  .logout-btn {
+    padding: 12px;
+    font-size: 1rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .sidebar {
+    background: #1a1a1a;
+    border-left-color: rgba(255,255,255,0.1);
+  }
+
+  .sidebar-header {
+    background: linear-gradient(to right, #2c2c2c, #1a1a1a);
+    border-bottom-color: rgba(255,255,255,0.1);
+  }
+
+  .sidebar-header h2 {
+    color: #ffffff;
+  }
+
+  .close-sidebar {
+    color: #a0a0a0;
+  }
+
+  .close-sidebar:hover {
+    color: #ffffff;
+    background: #2c2c2c;
+  }
+
+  .profile-section {
+    background: linear-gradient(135deg, #2c2c2c, #1a1a1a);
+  }
+
+  .profile-info h3 {
+    color: #ffffff;
+  }
+
+  .detail-item {
+    background: #2c2c2c;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .detail-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .detail-item i {
+    color: #3498db;
+  }
+
+  .desktop-user-icon {
+    background: linear-gradient(135deg, #2980b9, #1a5276);
+    box-shadow: 0 2px 10px rgba(26, 82, 118, 0.3);
+  }
+
+  .desktop-user-icon:hover {
+    box-shadow: 0 4px 15px rgba(26, 82, 118, 0.4);
+  }
+
+  .user-icon-tooltip {
+    background: rgba(255, 255, 255, 0.9);
+    color: #2c3e50;
+  }
+}
+
+/* Parts List Styles */
+.parts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.part-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #eee;
+}
+
+.part-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.part-name {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.part-price {
+  color: #27ae60;
+  font-weight: 500;
+}
+
+.part-description {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.no-parts {
+  text-align: center;
+  padding: 30px;
+  color: #7f8c8d;
+}
+
+.no-parts i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  color: #95a5a6;
+}
+
+/* Customer Details Styles */
+.customer-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.detail-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.detail-item label {
+  display: block;
+  color: #7f8c8d;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.detail-item span {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .part-item {
+    background: #2c2c2c;
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .part-name {
+    color: #ffffff;
+  }
+
+  .part-description {
+    color: #a0a0a0;
+  }
+
+  .no-parts {
+    color: #a0a0a0;
+  }
+
+  .no-parts i {
+    color: #7f8c8d;
+  }
+
+  .detail-item label {
+    color: #a0a0a0;
+  }
+
+  .detail-item span {
+    color: #ffffff;
   }
 }
 </style>

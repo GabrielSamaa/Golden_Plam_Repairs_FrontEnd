@@ -105,7 +105,7 @@
                   <button 
                     class="btn btn-sm btn-primary me-2" 
                     @click="goToVerification(repair)"
-                    v-if="!repair.deliveredToCustomer"
+                    v-if="checkDeliveryStatus(repair)"
                   >
                     <i class="fas fa-handshake"></i>
                     تحویل به مشتری
@@ -220,33 +220,82 @@ const calculateTodayStats = () => {
 
 const markAsReadyForDelivery = (repair) => {
   if (confirm('آیا از آماده‌سازی این دستگاه برای تحویل اطمینان دارید؟')) {
-    // به‌روزرسانی در آرایه محلی
-    const index = repairs.value.findIndex(r => r.id === repair.id)
-    if (index !== -1) {
-      const updatedRepair = {
-        ...repair,
-        readyForDelivery: true,
-        completionDate: new Date().toLocaleDateString('fa-IR')
-      }
-      repairs.value[index] = updatedRepair
+    try {
+      // به‌روزرسانی در آرایه محلی
+      const index = repairs.value.findIndex(r => r.id === repair.id)
+      if (index !== -1) {
+        const updatedRepair = {
+          ...repair,
+          status: 'completed',
+          readyForDelivery: true,
+          deliveredToCustomer: false,
+          completionDate: new Date().toLocaleDateString('fa-IR'),
+          adminMarkedReady: true,
+          deliveryDate: null
+        }
+        repairs.value[index] = updatedRepair
 
-      // به‌روزرسانی در localStorage
-      const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      const globalIndex = allRepairs.findIndex(r => r.id === repair.id)
-      if (globalIndex !== -1) {
-        allRepairs[globalIndex] = updatedRepair
-        localStorage.setItem('receptions', JSON.stringify(allRepairs))
+        // به‌روزرسانی در localStorage
+        const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
+        const globalIndex = allRepairs.findIndex(r => r.id === repair.id)
+        if (globalIndex !== -1) {
+          allRepairs[globalIndex] = updatedRepair
+          localStorage.setItem('receptions', JSON.stringify(allRepairs))
+        }
+
+        // به‌روزرسانی در localStorage تعمیرکار
+        const repairmanId = repair.repairmanId
+        if (repairmanId) {
+          const repairmanRepairs = allRepairs.filter(r => r.repairmanId === repairmanId)
+          localStorage.setItem(`repairman_${repairmanId}_repairs`, JSON.stringify(repairmanRepairs))
+        }
+
+        // پاک کردن اطلاعات تحویل قبلی اگر وجود داشته باشد
+        localStorage.removeItem(`delivery_verification_${repair.id}`)
       }
+    } catch (error) {
+      console.error('Error updating repair status:', error)
+      alert('خطا در به‌روزرسانی وضعیت تعمیر')
     }
   }
 }
 
 // هدایت به صفحه تأیید کد
 const goToVerification = (repair) => {
-  // ذخیره اطلاعات تعمیر در localStorage قبل از مسیردهی
-  localStorage.setItem('currentDeliveryRepair', JSON.stringify(repair))
-  const url = `/admin/verify-delivery-code?id=${repair.id}`
-  window.location.href = url
+  try {
+    if (!repair || !repair.id) {
+      console.error('Invalid repair data:', repair)
+      alert('اطلاعات تعمیر نامعتبر است')
+      return
+    }
+
+    // بررسی وضعیت تعمیر
+    if (!repair.readyForDelivery) {
+      alert('این تعمیر هنوز آماده تحویل نیست')
+      return
+    }
+
+    if (repair.deliveredToCustomer) {
+      alert('این دستگاه قبلاً به مشتری تحویل داده شده است')
+      return
+    }
+
+    // ذخیره اطلاعات تعمیر در localStorage
+    const deliveryData = {
+      ...repair,
+      verificationAttempts: 0,
+      lastVerificationAttempt: null
+    }
+    
+    localStorage.setItem('currentDeliveryRepair', JSON.stringify(deliveryData))
+    
+    // هدایت به صفحه تأیید کد
+    const url = `/admin/verify-delivery-code?id=${repair.id}`
+    navigateTo(url)
+  } catch (error) {
+    console.error('Error in goToVerification:', error)
+    alert('خطا در انتقال به صفحه تأیید کد')
+  }
 }
 
 // لغو وضعیت آماده تحویل
@@ -298,6 +347,18 @@ const moveToArchive = (repair) => {
       alert('خطا در ارسال به بایگانی')
     }
   }
+}
+
+// اضافه کردن تابع برای بررسی وضعیت تحویل
+const checkDeliveryStatus = (repair) => {
+  if (!repair) return false
+  
+  // بررسی وضعیت‌های مختلف
+  const isReady = repair.readyForDelivery === true
+  const isNotDelivered = repair.deliveredToCustomer !== true
+  const hasValidStatus = repair.status === 'completed'
+  
+  return isReady && isNotDelivered && hasValidStatus
 }
 </script>
 

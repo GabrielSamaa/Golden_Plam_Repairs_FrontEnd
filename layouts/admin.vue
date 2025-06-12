@@ -13,7 +13,7 @@
           <li>
             <NuxtLink to="/admin/admin_counter" class="nav-item" active-class="active" @click="closeMenu">
               <i class="fas fa-home"></i>
-              <span>پیشخوان</span>
+              <span>تحویل دستگاه ها</span>
             </NuxtLink>
           </li>
           <li>
@@ -50,12 +50,15 @@
       </nav>
     </div>
 
+    <!-- Overlay for mobile -->
+    <div class="sidebar-overlay" v-if="isMobileMenuOpen" @click="toggleSidebar"></div>
+
     <!-- Main Content -->
     <div class="main-content">
       <!-- Top Bar -->
       <div class="top-bar">
         <button class="navbar-toggler" type="button" @click="toggleSidebar">
-          <span class="navbar-toggler-icon"></span>
+          <i class="fas fa-bars"></i>
         </button>
         <!-- <div class="search-box">
           <input type="text" placeholder="جستجو..." class="search-input">
@@ -126,18 +129,26 @@ watch(() => route.path, (newPath) => {
 
 const toggleSidebar = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value
+  // Prevent body scroll when menu is open
+  if (isMobileMenuOpen.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
 }
 
 const closeMenu = () => {
   if (window.innerWidth <= 991.98) {
     isMobileMenuOpen.value = false
+    document.body.style.overflow = ''
   }
 }
 
 // Handle window resiz
 const handleResize = () => {
-  if (window.innerWidth > 991) {
+  if (window.innerWidth > 991.98) {
     isMobileMenuOpen.value = false
+    document.body.style.overflow = ''
   }
 }
 
@@ -321,19 +332,15 @@ onUnmounted(() => {
   display: none;
   background: none;
   border: none;
-  padding: 5px;
+  padding: 8px;
   cursor: pointer;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  transition: all 0.3s ease;
 }
 
-.navbar-toggler-icon {
-  display: inline-block;
-  width: 1.5em;
-  height: 1.5em;
-  vertical-align: middle;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100%;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+.navbar-toggler:hover {
+  color: #3498db;
 }
 
 .search-box {
@@ -528,6 +535,18 @@ onUnmounted(() => {
   position: relative;
 }
 
+/* Add overlay styles */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
 @media (max-width: 991.98px) {
   .sidebar {
     transform: translateX(100%);
@@ -535,97 +554,88 @@ onUnmounted(() => {
     top: 0;
     right: 0;
     height: 100vh;
-    width: 250px;
+    width: 280px;
+    z-index: 1000;
+    transition: transform 0.3s ease;
   }
 
   .sidebar.show {
     transform: translateX(0);
   }
 
-  .main-content {
-    margin-right: 0;
+  .sidebar-overlay {
+    display: block;
   }
 
   .navbar-toggler {
     display: block;
   }
 
-  .search-box {
-    width: 200px;
+  .main-content {
+    margin-right: 0;
+    width: 100%;
   }
 
-  .user-name {
-    display: none;
+  .top-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 998;
   }
 
   .page-content {
-    padding: 15px;
+    margin-top: 70px;
   }
 
-  .nav-item {
-    padding: 15px 20px;
+  /* Update close button styles */
+  .close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transition: all 0.3s ease;
   }
 
-  .nav-item i {
+  .close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .close-btn i {
     font-size: 1.2rem;
   }
-
-  .nav-item span {
-    font-size: 1rem;
-  }
-
-  .user-dropdown {
-    position: fixed;
-    top: auto;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
-    border-radius: 0;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-  }
-  
-  .user-dropdown-item {
-    padding: 15px;
-  }
 }
 
-@media (min-width: 992px) {
+@media (max-width: 768px) {
   .sidebar {
-    position: fixed;
-    transform: none;
-  }
-
-  .main-content {
-    margin-right: 250px;
-  }
-
-  .navbar-toggler {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .sidebar {
-    width: 100%;
-    right: -100%;
-  }
-
-  .search-box {
-    width: 150px;
+    width: 260px;
   }
 
   .top-bar {
     padding: 10px 15px;
   }
 
-  .notifications {
-    margin-right: 10px;
+  .navbar-toggler {
+    padding: 6px;
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
   }
 
-  .nav-item {
-    padding: 12px 15px;
+  .top-bar {
+    padding: 8px 12px;
+  }
+
+  .navbar-toggler {
+    padding: 5px;
+    font-size: 1.2rem;
   }
 }
 </style> 

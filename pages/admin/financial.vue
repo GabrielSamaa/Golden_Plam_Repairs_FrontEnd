@@ -84,8 +84,8 @@
               <th>مشتری</th>
               <th>دستگاه</th>
               <th>هزینه قطعات</th>
-              <th>دستمزد</th>
-              <th>جمع کل</th>
+              <th>بدهکاری</th>
+              <th>بیانه</th>
               <th>وضعیت</th>
               <th>عملیات</th>
             </tr>
@@ -165,10 +165,6 @@
                   <label>مبلغ بیانه:</label>
                   <span>{{ formatCurrency(selectedRecord.initialStatement) }}</span>
                 </div>
-                <div class="summary-item expense">
-                  <label>هزینه قطعات:</label>
-                  <span>{{ formatCurrency(selectedRecord.totalPartsCost) }}</span>
-                </div>
                 <div class="summary-item">
                   <label>دستمزد تعمیر:</label>
                   <div class="labor-cost-input">
@@ -188,6 +184,10 @@
                       ذخیره
                     </button>
                   </div>
+                </div>
+                <div class="summary-item expense">
+                  <label>هزینه قطعات:</label>
+                  <span>{{ formatCurrency(selectedRecord.totalPartsCost) }}</span>
                 </div>
                 <div class="summary-item total">
                   <label>مبلغ قابل پرداخت:</label>
@@ -221,7 +221,7 @@ const searchQuery = ref('')
 const financialRecords = ref([])
 
 const isLaborCostChanged = ref(false)
-const originalLaborCost = ref(0)
+const originalLaborCost = ref('')
 
 // Load financial records
 onMounted(() => {
@@ -290,8 +290,12 @@ const getStatusText = (status) => {
 }
 
 const viewDetails = (record) => {
-  selectedRecord.value = { ...record }
-  originalLaborCost.value = record.laborCost
+  selectedRecord.value = { 
+    ...record,
+    laborCost: '',
+    initialStatement: record.totalCost || 0
+  }
+  originalLaborCost.value = ''
   isLaborCostChanged.value = false
   showDetailsModal.value = true
 }
@@ -303,42 +307,43 @@ const closeDetailsModal = () => {
 
 const updateLaborCost = () => {
   if (selectedRecord.value) {
-    // حفظ مبلغ اولیه
-    if (!selectedRecord.value.initialStatement) {
-      selectedRecord.value.initialStatement = selectedRecord.value.totalCost
-    }
-    isLaborCostChanged.value = selectedRecord.value.laborCost !== originalLaborCost.value
+    const currentLaborCost = selectedRecord.value.laborCost === '' ? 0 : Number(selectedRecord.value.laborCost)
+    isLaborCostChanged.value = currentLaborCost !== (originalLaborCost.value === '' ? 0 : Number(originalLaborCost.value))
   }
 }
 
 const saveLaborCost = () => {
   if (!selectedRecord.value) return
 
-  // به‌روزرسانی در آرایه محلی
-  const index = financialRecords.value.findIndex(r => r.id === selectedRecord.value.id)
-  if (index !== -1) {
-    financialRecords.value[index] = { ...selectedRecord.value }
+  const laborCost = selectedRecord.value.laborCost === '' ? 0 : Number(selectedRecord.value.laborCost)
+  const updatedRecord = {
+    ...selectedRecord.value,
+    laborCost,
+    totalCost: selectedRecord.value.initialStatement + laborCost
   }
 
-  // به‌روزرسانی در localStorage
+  const index = financialRecords.value.findIndex(r => r.id === updatedRecord.id)
+  if (index !== -1) {
+    financialRecords.value[index] = updatedRecord
+  }
+
   const allRecords = JSON.parse(localStorage.getItem('financial_records') || '[]')
-  const globalIndex = allRecords.findIndex(r => r.id === selectedRecord.value.id)
+  const globalIndex = allRecords.findIndex(r => r.id === updatedRecord.id)
   if (globalIndex !== -1) {
-    allRecords[globalIndex] = { ...selectedRecord.value }
+    allRecords[globalIndex] = updatedRecord
     localStorage.setItem('financial_records', JSON.stringify(allRecords))
   }
 
-  // به‌روزرسانی در رکورد تعمیر
   const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-  const repairIndex = repairs.findIndex(r => r.id === selectedRecord.value.repairId)
+  const repairIndex = repairs.findIndex(r => r.id === updatedRecord.repairId)
   if (repairIndex !== -1) {
     const repair = repairs[repairIndex]
     repair.financialStatus = {
       ...repair.financialStatus,
-      initialStatement: selectedRecord.value.initialStatement,
-      laborCost: Number(selectedRecord.value.laborCost),
-      totalPartsCost: selectedRecord.value.totalPartsCost,
-      finalPayment: finalPayment.value,
+      initialStatement: updatedRecord.initialStatement,
+      laborCost: laborCost,
+      totalPartsCost: updatedRecord.totalPartsCost,
+      totalCost: updatedRecord.totalCost,
       lastUpdate: new Date().toLocaleString('fa-IR')
     }
     localStorage.setItem('receptions', JSON.stringify(repairs))
@@ -349,13 +354,12 @@ const saveLaborCost = () => {
   alert('اطلاعات مالی با موفقیت به‌روز شد')
 }
 
-// محاسبه مبلغ نهایی قابل پرداخت
 const finalPayment = computed(() => {
   if (!selectedRecord.value) return 0
-  const initial = selectedRecord.value.initialStatement || selectedRecord.value.totalCost
+  const initial = selectedRecord.value.initialStatement || 0
   const partsCost = selectedRecord.value.totalPartsCost || 0
-  const laborCost = Number(selectedRecord.value.laborCost) || 0
-  return initial - partsCost - laborCost
+  const laborCost = selectedRecord.value.laborCost === '' ? 0 : Number(selectedRecord.value.laborCost)
+  return initial + laborCost - partsCost
 })
 
 const applyFilters = () => {
@@ -708,6 +712,12 @@ const applyFilters = () => {
   width: 200px;
   text-align: left;
   direction: ltr;
+  font-family: monospace;
+}
+
+.labor-cost-input input::placeholder {
+  color: #95a5a6;
+  font-style: italic;
 }
 
 .labor-cost-input .btn {
