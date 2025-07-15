@@ -1,54 +1,42 @@
+// ~/middleware/admin.global.ts
 import { useAuth } from '~/composables/useAuth'
 
-// تابع کمکی برای بررسی وضعیت ادمین
-const isAdminAuthenticated = () => {
-  try {
-    const userData = JSON.parse(localStorage.getItem('currentUser') || 'null')
-    const userType = localStorage.getItem('userType')
-    const token = sessionStorage.getItem('auth_token')
-    const loginTime = sessionStorage.getItem('loginTime')
-
-    if (!userData || !userType || !token || !loginTime) {
-      return false
-    }
-
-    if (userType !== 'admin') {
-      return false
-    }
-
-    const loginTimestamp = parseInt(loginTime)
-    const now = Date.now()
-    const hoursSinceLogin = (now - loginTimestamp) / (1000 * 60 * 60)
-
-    if (hoursSinceLogin > 24) {
-      return false
-    }
-
-    const admins = JSON.parse(localStorage.getItem('admins') || '[]')
-    return admins.some((admin: any) => 
-      admin && 
-      admin.id === userData.id && 
-      admin.phone === userData.phone && 
-      admin.status === 'active'
-    )
-  } catch {
-    return false
-  }
-}
-
 export default defineNuxtRouteMiddleware((to) => {
-  // اگر در صفحه لاگین هستیم، اجازه ادامه می‌دهیم
+  // مقداردهی اولیه useAuth
+  const auth = useAuth()
+  
+  // برای مسیر لاگین بررسی نکن
   if (to.path === '/login') {
     return
   }
 
-  // فقط مسیرهای ادمین را چک می‌کنیم
+  // فقط برای مسیرهای ادمین بررسی انجام بده
   if (to.path.startsWith('/admin')) {
-    // بررسی مستقیم وضعیت ادمین
-    if (!isAdminAuthenticated()) {
-      const { clearAuth } = useAuth()
-      clearAuth()
+    // ابتدا وضعیت احراز هویت را بررسی کن
+    const { isAuthenticated, userType, currentUser } = auth.checkAuth()
+
+    // اگر کاربر احراز هویت نشده یا ادمین نیست
+    if (!isAuthenticated || userType !== 'admin' || !currentUser) {
+      auth.clearAuth()
+      return navigateTo('/login', { replace: true })
+    }
+
+    // بررسی اضافی برای ادمین فعال (اختیاری)
+    try {
+      const admins = JSON.parse(localStorage.getItem('admins') || '[]')
+      const adminExists = admins.some((admin: any) => 
+        admin?.id === currentUser.id &&
+        admin?.phone === currentUser.phone &&
+        admin?.status === 'active'
+      )
+      
+      if (!adminExists) {
+        auth.clearAuth()
+        return navigateTo('/login', { replace: true })
+      }
+    } catch (error) {
+      auth.clearAuth()
       return navigateTo('/login', { replace: true })
     }
   }
-}) 
+})

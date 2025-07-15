@@ -8,5 +8,5 @@
 definePageMeta({
   layout: 'admin',
   middleware: ['auth', 'admin']
-})
+  })
   </script>

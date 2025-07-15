@@ -1,37 +1,57 @@
+// ~/composables/useAuth.ts
 import { ref, readonly } from 'vue'
 
-const authState = ref({
+interface User {
+  id: number
+  name: string
+  phone: string
+  role: number
+  status?: string
+}
+
+interface AuthState {
+  isInitialized: boolean
+  isAuthenticated: boolean
+  userType: 'admin' | 'repairman' | null
+  currentUser: User | null
+  token: string | null
+  loginTime: number | null
+}
+
+const authState = ref<AuthState>({
   isInitialized: false,
   isAuthenticated: false,
-  userType: null as string | null,
-  currentUser: null as any,
-  token: null as string | null,
-  loginTime: null as number | null
+  userType: null,
+  currentUser: null,
+  token: null,
+  loginTime: null
 })
 
 export const useAuth = () => {
+  // مقداردهی اولیه وضعیت احراز هویت
   const initializeAuth = () => {
     if (authState.value.isInitialized) return
 
     try {
-      const userData = JSON.parse(localStorage.getItem('currentUser') || 'null')
-      const userType = localStorage.getItem('userType')
       const token = sessionStorage.getItem('auth_token')
-      const loginTime = sessionStorage.getItem('loginTime')
+      const userData = JSON.parse(localStorage.getItem('user_data') || 'null')
+      const loginTime = localStorage.getItem('login_time')
 
-      if (userData && userType && token && loginTime) {
+      if (token && userData && loginTime) {
         const loginTimestamp = parseInt(loginTime)
-        const now = Date.now()
-        const hoursSinceLogin = (now - loginTimestamp) / (1000 * 60 * 60)
+        const hoursSinceLogin = (Date.now() - loginTimestamp) / (1000 * 60 * 60)
 
         if (hoursSinceLogin <= 24) {
-          // بررسی اعتبار کاربر در لیست ادمین‌ها یا تعمیرکاران
-          const users = JSON.parse(localStorage.getItem(userType === 'admin' ? 'admins' : 'repairmen') || '[]')
-          const userExists = users.some((user: any) => 
-            user && 
-            user.id === userData.id && 
-            user.phone === userData.phone && 
-            user.status === 'active'
+          const userType = userData.role === 1 ? 'admin' : 'repairman'
+          
+          // بررسی وجود کاربر در لیست مربوطه
+          const userList = JSON.parse(
+            localStorage.getItem(userType === 'admin' ? 'admins' : 'repairmen') || '[]'
+          )
+          
+          const userExists = userList.some((u: User) => 
+            u?.id === userData.id && 
+            u?.phone === userData.phone
           )
 
           if (userExists) {
@@ -48,36 +68,38 @@ export const useAuth = () => {
         }
       }
     } catch (error) {
-      console.error('Error initializing auth:', error)
+      console.error('Auth initialization error:', error)
     }
 
-    // اگر هر کدام از شرایط برقرار نباشد، وضعیت را پاک می‌کنیم
     clearAuth()
   }
 
-  const setAuth = (userData: any, type: string, token: string) => {
+  // تنظیم وضعیت احراز هویت
+  const setAuth = (token: string, userData: User) => {
     const loginTime = Date.now()
-    
-    localStorage.setItem('currentUser', JSON.stringify(userData))
-    localStorage.setItem('userType', type)
-    sessionStorage.setItem('auth_token', token)
-    sessionStorage.setItem('loginTime', loginTime.toString())
+    const userType = userData.role === 1 ? 'admin' : 'repairman'
 
+    // ذخیره در localStorage و sessionStorage
+    localStorage.setItem('user_data', JSON.stringify(userData))
+    localStorage.setItem('login_time', loginTime.toString())
+    sessionStorage.setItem('auth_token', token)
+
+    // به‌روزرسانی state
     authState.value = {
       isInitialized: true,
       isAuthenticated: true,
-      userType: type,
+      userType,
       currentUser: userData,
       token,
       loginTime
     }
   }
 
+  // پاک کردن وضعیت احراز هویت
   const clearAuth = () => {
-    localStorage.removeItem('currentUser')
-    localStorage.removeItem('userType')
+    localStorage.removeItem('user_data')
+    localStorage.removeItem('login_time')
     sessionStorage.removeItem('auth_token')
-    sessionStorage.removeItem('loginTime')
 
     authState.value = {
       isInitialized: true,
@@ -89,6 +111,7 @@ export const useAuth = () => {
     }
   }
 
+  // بررسی وضعیت احراز هویت
   const checkAuth = () => {
     if (!authState.value.isInitialized) {
       initializeAuth()
@@ -100,6 +123,7 @@ export const useAuth = () => {
     setAuth,
     clearAuth,
     checkAuth,
-    initializeAuth
+    initializeAuth,
+    authState: readonly(authState)
   }
-} 
+}

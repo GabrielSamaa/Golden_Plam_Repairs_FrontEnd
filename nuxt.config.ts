@@ -1,5 +1,3 @@
-import { hasKeyword } from "./golden_palm_repairs_api/vendor/swagger-api/swagger-ui/src/core/plugins/json-schema-2020-12/fn";
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   app: {
@@ -24,7 +22,12 @@ export default defineNuxtConfig({
   },
   css: [
     '~/assets/css/main.css',
-  ]
+  ],
+  runtimeConfig: {
+    public: {
+      apiBase: 'http://localhost:8000/api'
+    }
+  }
 })
 
 
