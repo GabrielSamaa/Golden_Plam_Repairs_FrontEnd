@@ -4,7 +4,7 @@
         <div class="container-fluid px-4">
           <!-- لوگو یا نام سایت -->
           <NuxtLink to="/" class="navbar-brand">
-            <img src="/assets/images/2.png" alt="لوگو" height="40" class="d-inline-block align-top ms-2">
+            <img src="/assets/images/2.png" alt="لوگو سایت تعمیرات نخل طلایی" height="40" class="d-inline-block align-top ms-2" loading="lazy"/>
             نخل طلایی
           </NuxtLink>
   
