@@ -9,7 +9,7 @@
       <form v-if="!codeSent"  @submit.prevent="sendVerificationCode" class="login-form">
         <div class="form-group">
           <label>نوع کاربر</label>
-          <select class="form-control" v-model="userType" required>
+          <select class="form-control" v-model="role" required>
             <option value="repairman">تعمیرکار</option>
             <option value="admin">مدیر سیستم</option>
           </select>
@@ -103,15 +103,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+
 import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNuxtApp } from '#app'
+import { useAuth } from '~/composables/useAuth'
 
 const { $axios } = useNuxtApp()
 const router = useRouter()
+const auth = useAuth()
 
-const userType = ref('repairman')
+interface User { id: number; [key: string]: any }
+
+const role = ref('2')
 const phone = ref('')
 const smsCode = ref('')
 const errorMessage = ref('')
@@ -119,7 +124,35 @@ const isSendingCode = ref(false)
 const isVerifying = ref(false)
 const codeSent = ref(false) // اطمینان حاصل کنید این مقدار false است
 const resendTimer = ref(0)
-let timerInterval = null
+let timerInterval: NodeJS.Timeout | null = null
+
+// ===== Helper functions =====
+const formatPhoneInput = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  // فقط اعداد مجازند و طول حداکثر 11
+  target.value = target.value.replace(/[^0-9]/g, '').slice(0, 11)
+  phone.value = target.value
+}
+
+const formatTime = (seconds: number) => {
+  const m = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const s = (seconds % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
+
+const startResendTimer = (duration = 60) => {
+  resendTimer.value = duration
+  if (timerInterval) clearInterval(timerInterval)
+  timerInterval = setInterval(() => {
+    if (resendTimer.value > 0) {
+      resendTimer.value--
+    } else {
+      clearInterval(timerInterval as NodeJS.Timeout)
+      timerInterval = null
+    }
+  }, 1000)
+}
+// ============================
 
 
 const sendVerificationCode = async () => {
@@ -135,20 +168,20 @@ const sendVerificationCode = async () => {
     codeSent.value = true
     const response = await $axios.post('/user/auth', {
       mobile: phone.value,
-      // userType: userType.value
+      userType: role.value === 'admin' ? 1 : 2
     })
 
-    // console.log('پاسخ سرور:', response.data) // برای دیباگ
+    console.log('پاسخ سرور:', response.data) // برای دیباگ
 
     // تغییر اصلی اینجا - بررسی دقیق پاسخ سرور
     if (response.data?.success) {
-      codeSent.value = true // این خط حیاتی است
+      codeSent.value = true // فقط بعد از پاسخ موفق
       startResendTimer()
       console.log('وضعیت codeSent تغییر کرد به:', codeSent.value) // تأیید در کنسول
     } else {
       errorMessage.value = response.data?.message || 'خطا در ارسال کد تأیید'
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('خطا در ارسال کد:', error)
     errorMessage.value = 'اتصال به سرور برقرار نشد'
   } finally {
@@ -164,6 +197,8 @@ const resendCode = async () => {
 }
 
 const verifyCode = async () => {
+  if (isVerifying.value) return
+  isVerifying.value = true
   try {
     const response = await $axios.post('/user/login', {
       mobile: phone.value,
@@ -179,10 +214,29 @@ const verifyCode = async () => {
     // پردازش پاسخ موفق
     console.log('پاسخ سرور:', response.data);
     if (response.data?.access_token) {
-      localStorage.setItem('access_token', response.data.access_token);
-      router.push('/admin');
+      // role را به صورت رشته ذخیره کن
+      const userRole = response.data.user.role == 1 ? '1' : '2'
+      response.data.user.role = userRole
+      if (!response.data.user.status) {
+        response.data.user.status = 'active'
+      }
+      // ذخیره کاربر و نقش
+      localStorage.setItem('role', userRole)
+      localStorage.setItem('currentUser', JSON.stringify(response.data.user))
+      sessionStorage.setItem('auth_token', response.data.access_token)
+      if (userRole === '1') {
+        localStorage.setItem('currentAdminId', response.data.user.id.toString())
+        await router.push('/admin/admin_counter')
+      } else if (userRole === '2') {
+        localStorage.setItem('currentRepairmanId', response.data.user.id.toString())
+        await router.push('/repairman/index_repairs')
+      } else {
+        await router.push('/')
+      }
+      // ذخیره وضعیت احراز هویت در composable
+      auth.setAuth(response.data.access_token, response.data.user)
     }
-  } catch (error) {
+  } catch (error: any) {
     // مدیریت خطاهای مختلف
     if (error.response) {
       // سرور پاسخ داده اما با خطا
@@ -201,6 +255,8 @@ const verifyCode = async () => {
       console.error('خطای تنظیم درخواست:', error.message);
       errorMessage.value = 'خطا در ارسال درخواست';
     }
+  } finally {
+    isVerifying.value = false
   }
 };
 

@@ -1,22 +1,21 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const { isLoggedIn, userType, currentUser } = useAuth().checkAuth();
-  
-  // بررسی اولیه احراز هویت
-  if (!isLoggedIn || userType !== 'admin') {
-    useAuth().clearAuth();
-    return navigateTo('/login');
-  }
+  if (typeof window === 'undefined') return
+  const token = sessionStorage.getItem('auth_token')
+  const role = localStorage.getItem('role')
+  const user = JSON.parse(localStorage.getItem('currentUser') || 'null')
 
-  // بررسی زمان لاگین (24 ساعت)
-  const loginTime = parseInt(localStorage.getItem('loginTime') || 0);
-  if ((Date.now() - loginTime) > 24 * 60 * 60 * 1000) {
-    useAuth().clearAuth();
+  if (!token || role !== '1' || !user) {
+    localStorage.removeItem('role')
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('currentAdminId')
+    localStorage.removeItem('currentRepairmanId')
+    sessionStorage.removeItem('auth_token')
     return navigateTo('/login');
   }
 
   // بررسی مسیرهای مجاز
   const allowedRoutes = [
-   '/admin/admin_counter',
+    '/admin/admin_counter',
     '/admin/admins',
     '/admin/archive',
     '/admin/financial',

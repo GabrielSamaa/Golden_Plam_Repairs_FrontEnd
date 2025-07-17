@@ -166,10 +166,10 @@ definePageMeta({
         try {
           // Check if user is logged in as admin
           const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
-          const userType = localStorage.getItem('userType')
+          const role = localStorage.getItem('role')
           
           // If not logged in or not an admin, redirect to login
-          if (!currentUser || userType !== 'admin') {
+          if (!currentUser || role !== '1') {
             return navigateTo('/login')
           }
         } catch (error) {

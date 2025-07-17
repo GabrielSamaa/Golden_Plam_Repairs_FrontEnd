@@ -178,7 +178,7 @@ const handleLogout = async () => {
     
     // پاک کردن اطلاعات از localStorage
     localStorage.removeItem('currentUser')
-    localStorage.removeItem('userType')
+    localStorage.removeItem('role')
     localStorage.removeItem('loginVerificationCode')
     localStorage.removeItem('userMessages')
     
@@ -186,7 +186,7 @@ const handleLogout = async () => {
     sessionStorage.removeItem('auth_token')
     sessionStorage.removeItem('loginTime')
     sessionStorage.removeItem('currentUser')
-    sessionStorage.removeItem('userType')
+    sessionStorage.removeItem('role')
     
     // بستن منوی کاربر
     closeUserMenu()

@@ -1,24 +1,27 @@
 export default defineNuxtRouteMiddleware((to, from) => {
-  const { isLoggedIn, userType } = useAuth().checkAuth();
-  
+  if (typeof window === 'undefined') return
+  const token = sessionStorage.getItem('auth_token')
+  const role = localStorage.getItem('role')
+  const user = JSON.parse(localStorage.getItem('currentUser') || 'null')
+
   const isLoginRoute = to.path === '/login';
   const isAdminRoute = to.path.startsWith('/admin');
   const isRepairmanRoute = to.path.startsWith('/repairman');
 
-  // اگر لاگین نکرده و در صفحه لاگین نیست
-  if (!isLoggedIn && !isLoginRoute) {
+  if ((!token || !role || !user) && !isLoginRoute) {
     return navigateTo('/login');
   }
 
-  // اگر لاگین کرده و در صفحه لاگین است
-  if (isLoggedIn && isLoginRoute) {
-    return navigateTo(userType === 'admin' ? '/admin' : '/repairman');
+  if (token && role && user && isLoginRoute) {
+    return navigateTo(role === '1' ? '/admin/admin_counter' : '/repairman/index_repairs');
   }
 
-  // بررسی دسترسی بر اساس نقش
-  if ((isAdminRoute && userType !== 'admin') || 
-      (isRepairmanRoute && userType !== 'repairman')) {
-    useAuth().clearAuth();
+  if ((isAdminRoute && role !== '1') || (isRepairmanRoute && role !== '2')) {
+    localStorage.removeItem('role')
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('currentAdminId')
+    localStorage.removeItem('currentRepairmanId')
+    sessionStorage.removeItem('auth_token')
     return navigateTo('/login');
   }
 });
