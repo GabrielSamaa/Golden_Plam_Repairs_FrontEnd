@@ -1,8 +1,9 @@
 <template>
   <div class="golden-palm-page">
     <Header />
-    
-    <main class="main-content">
+    <main>
+
+    <div class="main-content">
       <div class="background-design">
         <div class="circle circle-1"></div>
         <div class="circle circle-2"></div>
@@ -18,7 +19,8 @@
           </svg>
         </NuxtLink>
       </div>
-    </main>
+</div>
+
     <div class="features-section py-5">
       <div class="container">
         <div class="row g-4">
@@ -91,6 +93,7 @@
         <h4 class="content-center bg-warning-subtle p-2 rounded-5">نخل طلایی؛ اعتماد شما، مسئولیت ما!</h4>
       </div>
     </div>
+    </main>
     <Footer />
   </div>
 </template>
