@@ -10,7 +10,7 @@
           <i class="fas fa-tools"></i>
         </div>
         <div class="stat-info">
-          <h3>{{ completedRepairs.length }}</h3>
+          <h3 >{{ completedRepairs }}</h3>
           <p>دستگاه‌های آماده تحویل</p>
         </div>
       </div>
@@ -28,8 +28,8 @@
           <i class="fas fa-clock"></i>
         </div>
         <div class="stat-info">
-          <h3>{{ pendingDeliveryCount }}</h3>
-          <p>در انتظار تحویل</p>
+          <h3>{{ fix.value }}</h3>
+          <p>در انتظار تعمیر</p>
         </div>
       </div>
       <div class="stat-card">
@@ -37,7 +37,7 @@
           <i class="fas fa-money-bill-wave"></i>
         </div>
         <div class="stat-info">
-          <h3>{{ todayRevenue.toLocaleString() }} تومان</h3>
+          <h3>{{ income }} تومان</h3>
           <p>درآمد امروز</p>
         </div>
       </div>
@@ -130,28 +130,51 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import {useNuxtApp} from "#app";
 
 definePageMeta({
   layout: 'admin',
   middleware: ['admin']
 })
-
+const { $axios } = useNuxtApp()
 const searchQuery = ref('')
 const sortBy = ref('date')
 const repairs = ref([])
 const deliveredCount = ref(0)
 const todayRevenue = ref(0)
+const completedRepairs = ref(0)
+const fix= ref(0)
+const  income = ref(0)
 
 // محاسبه آمار
-const completedRepairs = computed(() => {
-  return repairs.value.filter(repair => repair.status === 'completed')
-})
 
-const pendingDeliveryCount = computed(() => {
-  return repairs.value.filter(repair => 
-    repair.status === 'completed' && !repair.readyForDelivery
-  ).length
-})
+const countFixed = async () =>{
+  try {
+    const response = await $axios.get('/device/count-fixed',);
+    console.log(response)
+    completedRepairs.value = response.data.value;
+  } catch (e) {
+    completedRepairs.value = 'error';
+  }
+}
+
+// const completedRepairs = computed(() => {
+//   return repairs.value.filter(repair => repair.status === 'completed')
+// })
+const fixing = () => {
+  try {
+    const response = $axios.get('/device/count-fixing')
+    console.log(response)
+    fix.value = response.data.value
+  }catch (e){
+    fix.value = 'error'
+  }
+}
+// const pendingDeliveryCount = computed(() => {
+//   return repairs.value.filter(repair =>
+//     repair.status === 'completed' && !repair.readyForDelivery
+//   ).length
+// })
 
 // پاک کردن جستجو
 const clearSearch = () => {
@@ -201,6 +224,8 @@ const filteredRepairs = computed(() => {
 onMounted(() => {
   loadRepairs()
   calculateTodayStats()
+  countFixed()
+  fixing()
 })
 
 const loadRepairs = () => {
@@ -209,15 +234,32 @@ const loadRepairs = () => {
 }
 
 const calculateTodayStats = () => {
-  const today = new Date().toLocaleDateString('fa-IR')
-  const todayDeliveries = repairs.value.filter(repair => 
-    repair.status === 'delivered' && repair.deliveryDate === today
-  )
-  
-  deliveredCount.value = todayDeliveries.length
-  todayRevenue.value = todayDeliveries.reduce((sum, repair) => sum + repair.statement, 0)
+  try {
+    const response = $axios.get('/device/count-delivered-today',);
+    deliveredCount.value = response.data.value;
+    console.log(response)
+  }catch (e) {
+    deliveredCount.value = 'error';
+  }
+  //   const today = new Date().toLocaleDateString('fa-IR')
+//   const todayDeliveries = repairs.value.filter(repair =>
+//     repair.status === 'delivered' && repair.deliveryDate === today
+//   )
+//
+//   deliveredCount.value = todayDeliveries.length
+//   todayRevenue.value = todayDeliveries.reduce((sum, repair) => sum + repair.statement, 0)
 }
+const price = () => {
+  try {
+    const response = $axios.get('/financial/income-today')
+    console.log(response)
+    income.value = response.data.value
+  }catch (e) {
+    income.value = 'error'
+  }
 
+
+}
 const markAsReadyForDelivery = (repair) => {
   if (confirm('آیا از آماده‌سازی این دستگاه برای تحویل اطمینان دارید؟')) {
     try {
