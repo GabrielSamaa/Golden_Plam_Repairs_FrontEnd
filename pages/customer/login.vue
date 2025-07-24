@@ -87,31 +87,18 @@
           </form>
         </div>
       </div>
-
-      <!-- نمایش لیست تعمیرات -->
-      <div v-if="userRepairs.length > 0" class="repairs-section">
-        <div class="section-header">
-          <h3 class="section-title">تعمیرات شما</h3>
-          <p class="section-subtitle">لیست تمام تعمیرات ثبت شده با این شماره تماس</p>
-        </div>
-        <div class="repairs-grid">
-          <RepairCard
-            v-for="repair in userRepairs"
-            :key="repair.id"
-            :repair="repair"
-          />
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useNuxtApp } from '#app'
 import Header from '~/components/Header.vue'
 import RepairCard from '~/components/RepairCard.vue'
 
+const { $axios } = useNuxtApp()
 const router = useRouter()
 const phone = ref('')
 const smsCode = ref('')
@@ -120,7 +107,6 @@ const isSendingCode = ref(false)
 const isVerifying = ref(false)
 const codeSent = ref(false)
 const resendTimer = ref(0)
-const userRepairs = ref([])
 let timerInterval = null
 
 // فرمت کردن زمان به دقیقه و ثانیه
@@ -131,35 +117,32 @@ const formatTime = (seconds) => {
 }
 
 // شروع تایمر
-const startResendTimer = () => {
-  resendTimer.value = 120 // 2 دقیقه
+const startResendTimer = (duration = 120) => {
+  resendTimer.value = duration
   if (timerInterval) clearInterval(timerInterval)
-  
   timerInterval = setInterval(() => {
     if (resendTimer.value > 0) {
       resendTimer.value--
     } else {
       clearInterval(timerInterval)
+      timerInterval = null
     }
   }, 1000)
 }
 
-// اضافه کردن watch برای کنترل ورودی شماره تلفن
+// کنترل ورودی شماره تلفن
 watch(phone, (newValue) => {
-  // حذف همه کاراکترهای غیر عددی
+  if (typeof newValue !== 'string') {
+    phone.value = ''
+    return
+  }
   let cleaned = newValue.replace(/\D/g, '')
-  
-  // اگر شماره با 09 شروع نشده، اضافه کن
   if (!cleaned.startsWith('09') && cleaned.length > 0) {
     cleaned = '09' + cleaned
   }
-  
-  // محدود کردن طول به 11 رقم
   if (cleaned.length > 11) {
     cleaned = cleaned.slice(0, 11)
   }
-  
-  // به‌روزرسانی مقدار اگر تغییر کرده باشد
   if (cleaned !== newValue) {
     phone.value = cleaned
   }
@@ -167,34 +150,29 @@ watch(phone, (newValue) => {
 
 // ارسال کد تأیید
 const sendVerificationCode = async () => {
-  if (!phone.value || phone.value.length !== 11) {
+  const phoneStr = typeof phone.value === 'string' ? phone.value : ''
+  console.log('sending code', phoneStr) // Debug log
+  if (!phoneStr || phoneStr.length !== 11) {
     error.value = 'لطفاً شماره تماس را به درستی وارد کنید'
     return
   }
-
   isSendingCode.value = true
   error.value = ''
-
   try {
-    // کد ثابت برای تست: 123456
-    const verificationCode = '123456'
-    
-    // در اینجا باید کد را به سرور ارسال کنید و از آنجا پیامک شود
-    const smsText = `کد تأیید ورود به سیستم پیگیری تعمیرات: ${verificationCode}\nتعمیرگاه طلایی پالم`
-    
-    // ذخیره کد در localStorage
-    localStorage.setItem('loginVerificationCode', JSON.stringify({
-      phone: phone.value,
-      code: verificationCode,
-      timestamp: new Date().toISOString()
-    }))
-    
-    // نمایش پیام موفقیت
-    alert(`کد تأیید به شماره ${phone.value} ارسال شد.\n\nکد تست: ${verificationCode}\n\nمتن پیامک:\n${smsText}`)
-    codeSent.value = true
-    startResendTimer()
+    const response = await $axios.post('/user/auth', {
+      mobile: phoneStr
+    })
+    console.log('response from /user/auth:', response) // Debug log
+    if (response.status === 200 && response.data?.message) {
+      codeSent.value = true
+      startResendTimer()
+    } else if (response.data?.message) {
+      error.value = response.data.message
+    } else {
+      error.value = response.data?.message || 'خطا در ارسال کد تأیید'
+    }
   } catch (err) {
-    error.value = 'خطا در ارسال کد تأیید'
+    error.value = 'اتصال به سرور برقرار نشد'
     console.error('Error sending verification code:', err)
   } finally {
     isSendingCode.value = false
@@ -210,41 +188,46 @@ const resendCode = () => {
 
 // بررسی کد پیامک
 const verifyCode = async () => {
+  const phoneStr = typeof phone.value === 'string' ? phone.value : ''
   if (!smsCode.value || smsCode.value.length !== 6) {
     error.value = 'لطفاً کد 6 رقمی را وارد کنید'
     return
   }
-
   isVerifying.value = true
   error.value = ''
-
   try {
-    // بررسی کد از localStorage
-    const savedData = JSON.parse(localStorage.getItem('loginVerificationCode') || '{}')
-    
-    if (savedData.phone === phone.value && savedData.code === smsCode.value) {
-      // کد صحیح است
-      const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-      const foundRepairs = receptions.filter(r => r.phone.toString().trim() === phone.value)
-      
-      if (foundRepairs.length === 0) {
-        alert('اطلاعاتی یافت نشد. لطفاً شماره تماس را با دقت وارد کنید.')
-      } else {
-        // هدایت به صفحه تعمیرات مشتری
-        router.push(`/customer/my_repairs?phone=${phone.value}`)
-      }
+    const response = await $axios.post('/user/login', {
+      mobile: phoneStr,
+      code: smsCode.value
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    })
+    if (response.data?.access_token) {
+      localStorage.setItem('role', '3')
+      localStorage.setItem('currentUser', JSON.stringify(response.data.user))
+      sessionStorage.setItem('auth_token', response.data.access_token)
+      router.push(`/customer/my_repairs?phone=${phoneStr}`)
     } else {
-      error.value = 'کد وارد شده صحیح نیست'
+      error.value = response.data?.message || 'کد وارد شده صحیح نیست'
     }
   } catch (err) {
-    error.value = 'خطا در بررسی کد'
+    if (err.response) {
+      error.value = err.response.data?.message || 'خطای سرور'
+    } else if (err.request) {
+      error.value = 'اتصال به سرور برقرار نشد'
+    } else {
+      error.value = 'خطا در ارسال درخواست'
+    }
     console.error('Error verifying code:', err)
   } finally {
     isVerifying.value = false
   }
 }
 
-// پاکسازی تایمر هنگام خروج از کامپوننت
 onUnmounted(() => {
   if (timerInterval) {
     clearInterval(timerInterval)

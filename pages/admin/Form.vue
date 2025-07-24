@@ -54,11 +54,9 @@
             <label for="category">دسته بندی</label>
             <select v-model="form.category" class="form-control" id="category" required>
               <option value="" disabled selected>لطفا انتخاب کنید</option>
-              <option value="الکترونیکی">الکترونیکی</option>
-              <option value="مکانیکی">مکانیکی</option>
-              <option value="نرم‌افزاری">نرم‌افزاری</option>
-              <option value="سخت‌افزاری">سخت‌افزاری</option>
-              <option value="سایر">سایر</option>
+              <option v-for="cat in deviceCategories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
             </select>
           </div>
 
@@ -67,7 +65,7 @@
             <select v-model="form.repairmanId" class="form-control" id="repairman" required>
               <option value="" disabled selected>لطفا تعمیرکار را انتخاب کنید</option>
               <option v-for="repairman in activeRepairmen" :key="repairman.id" :value="repairman.id">
-                {{ repairman.fullName }} ({{ repairman.specialty }})
+                {{ repairman.fullName || repairman.name }}<span v-if="repairman.specialty"> ({{ repairman.specialty }})</span>
               </option>
             </select>
           </div>
@@ -154,6 +152,8 @@ import { ref, computed, onMounted } from "vue"
 import moment from 'moment-jalaali'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
 import { useRouter } from 'nuxt/app'
+import { useNuxtApp } from '#app'
+const { $axios } = useNuxtApp()
 
 const router = useRouter()
 
@@ -203,11 +203,28 @@ const editingReceptionId = ref(null)
 // Add activeRepairmen ref
 const activeRepairmen = ref([])
 
+// Add deviceCategories ref
+const deviceCategories = ref([])
+
 // Load reception data if editing
-onMounted(() => {
-  const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
-  activeRepairmen.value = repairmen.filter(r => r.status === 'active')
-  
+onMounted(async () => {
+  const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')
+
+  // Fetch technicians from API
+  try {
+    const res = await $axios.get('/user/technician', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    if (res.data && Array.isArray(res.data)) {
+      activeRepairmen.value = res.data
+    }
+  } catch (e) {
+    console.error('خطا در دریافت لیست تعمیرکاران:', e, e?.response?.data)
+  }
+
+  // Load editing reception if exists
   const editingReception = JSON.parse(localStorage.getItem('editingReception') || 'null')
   if (editingReception) {
     console.log('Debug - Loading editing reception:', editingReception)
@@ -236,6 +253,20 @@ onMounted(() => {
       customerName: r.customerName
     }))
   })
+
+  // Fetch device categories from API
+  try {
+    const res = await $axios.get('/device/category', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    if (res.data && Array.isArray(res.data)) {
+      deviceCategories.value = res.data
+    }
+  } catch (e) {
+    console.error('خطا در دریافت دسته‌بندی دستگاه:', e, e?.response?.data)
+  }
 })
 
 const increaseStatement = () => {
@@ -256,7 +287,7 @@ const onStatementInput = (val) => {
   form.value.statement = num
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   // نرمال‌سازی شماره تلفن قبل از ذخیره
   const normalizedPhone = form.value.phone.toString().trim().replace(/[^0-9]/g, '')
   if (!normalizedPhone.startsWith('09')) {
@@ -297,7 +328,36 @@ const submitForm = () => {
       
       localStorage.setItem('receptions', JSON.stringify(receptions))
       localStorage.removeItem('editingReception')
-      alert("اطلاعات با موفقیت بروزرسانی شد!")
+      // ثبت اطلاعات دستگاه در دیتابیس
+      try {
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await $axios.post('/device/repair', {
+          name: form.value.fullName,
+          mobile: normalizedPhone,
+          technician_id: form.value.repairmanId || null,
+          device_category_id: form.value.category,
+          device_name: form.value.deviceName,
+          device_problem: form.value.description, // توضیحات ظاهری اینجا قرار بگیرد
+          repair_details: null,
+          prepaid: form.value.statement,
+          repair_price: 0,
+          price: 0,
+          status: form.value.status || 'pending',
+          repair_status: 'not_started',
+          verification_code: verificationCode,
+          received_at: form.value.receptionDate,
+          delivered_at: form.value.deliveryDate,
+          delivered_real_at: null
+        }, {
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')}`
+          }
+        });
+        alert("اطلاعات با موفقیت بروزرسانی شد!")
+      } catch (e) {
+        console.error('خطا در بروزرسانی اطلاعات دستگاه در دیتابیس:', e, e?.response?.data)
+        alert('خطا در بروزرسانی اطلاعات: ' + (e?.response?.data?.message || JSON.stringify(e?.response?.data) || e.message))
+      }
       navigateTo('/admin/reception')
     }
   } else {
@@ -324,6 +384,41 @@ const submitForm = () => {
     receptions.unshift(newReception)
     localStorage.setItem('receptions', JSON.stringify(receptions))
     
+    // ثبت اطلاعات دستگاه در دیتابیس
+    try {
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const response = await $axios.post('/device/repair', {
+        name: form.value.fullName,
+        mobile: normalizedPhone,
+        technician_id: form.value.repairmanId || null,
+        device_category_id: form.value.category,
+        device_name: form.value.deviceName,
+        device_problem: form.value.description, // توضیحات ظاهری اینجا قرار بگیرد
+        repair_details: null,
+        prepaid: form.value.statement,
+        repair_price: 0,
+        price: 0,
+        status: form.value.status || 'pending',
+        repair_status: 'not_started',
+        verification_code: verificationCode,
+        received_at: form.value.receptionDate,
+        delivered_at: form.value.deliveryDate,
+        delivered_real_at: null
+      }, {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (response.data && response.data.success) {
+        alert("فرم با موفقیت ثبت شد!")
+      } else {
+        alert("خطا در ثبت اطلاعات: " + (response.data?.message || 'خطای نامشخص'))
+      }
+    } catch (e) {
+      console.error('خطا در ثبت اطلاعات دستگاه در دیتابیس:', e, e?.response?.data)
+      alert('خطا در ثبت اطلاعات دستگاه: ' + (e?.response?.data?.message || JSON.stringify(e?.response?.data) || e.message))
+    }
     // بررسی نهایی داده‌های ذخیره شده
     const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
     console.log('Debug - Saved receptions:', {

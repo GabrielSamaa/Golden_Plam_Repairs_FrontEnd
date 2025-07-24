@@ -84,7 +84,7 @@
               <th>مشتری</th>
               <th>دستگاه</th>
               <th>هزینه قطعات</th>
-              <th>بدهکاری</th>
+              <th>مبلغ قابل پرداخت</th>
               <th>بیانه</th>
               <th>وضعیت</th>
               <th>عملیات</th>
@@ -359,7 +359,7 @@ const finalPayment = computed(() => {
   const initial = selectedRecord.value.initialStatement || 0
   const partsCost = selectedRecord.value.totalPartsCost || 0
   const laborCost = selectedRecord.value.laborCost === '' ? 0 : Number(selectedRecord.value.laborCost)
-  return initial + laborCost - partsCost
+  return initial + -laborCost - partsCost
 })
 
 const applyFilters = () => {

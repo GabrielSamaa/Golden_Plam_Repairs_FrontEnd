@@ -84,36 +84,36 @@
         @click="openRepairDetails(repair)"
       >
         <div class="card-header">
-          <span class="tracking-number">{{ repair.trackingNumber }}</span>
+          <span class="tracking-number">{{ repair.verification_code || '---' }}</span>
           <span :class="['status-badge', repair.status]">{{ getStatusText(repair.status) }}</span>
         </div>
         <div class="card-body">
           <div class="info-row">
             <i class="fas fa-user"></i>
-            <span>{{ repair.customerName }}</span>
+            <span>نامشخص</span>
           </div>
           <div class="info-row">
             <i class="fas fa-mobile-alt"></i>
-            <span>{{ repair.deviceType }}</span>
+            <span>{{ repair.device_name || 'نامشخص' }}</span>
           </div>
           <div class="info-row">
             <i class="fas fa-tag"></i>
-            <span>{{ repair.category }}</span>
+            <span>{{ repair.device_problem || 'ندارد' }}</span>
           </div>
           <div class="info-row">
             <i class="fas fa-money-bill-wave"></i>
-            <span>{{ repair.statement.toLocaleString() }} تومان</span>
+            <span>{{ (Number(repair.prepaid) || 0).toLocaleString() }} تومان</span>
           </div>
         </div>
         <div class="card-footer">
           <div class="date-info">
             <div class="date-item">
               <i class="fas fa-calendar-plus"></i>
-              <span>تاریخ پذیرش: {{ repair.receptionDate || repair.date || 'نامشخص' }}</span>
+              <span>تاریخ پذیرش: {{ repair.received_at || 'نامشخص' }}</span>
             </div>
-            <div class="date-item" v-if="repair.deliveryDate">
+            <div class="date-item">
               <i class="fas fa-calendar-check"></i>
-              <span>تاریخ تحویل: {{ repair.deliveryDate }}</span>
+              <span>تاریخ تحویل: {{ repair.delivered_at || 'نامشخص' }}</span>
             </div>
           </div>
         </div>
@@ -129,41 +129,15 @@
         </div>
         <div class="modal-body">
           <div class="detail-section">
-            <h4>اطلاعات مشتری</h4>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <label>شماره پیگیری:</label>
-                <span>{{ selectedRepair.trackingNumber }}</span>
-              </div>
-              <div class="detail-item">
-                <label>نام مشتری:</label>
-                <span>{{ selectedRepair.customerName }}</span>
-              </div>
-              <div class="detail-item">
-                <label>شماره تماس:</label>
-                <span>{{ selectedRepair.phone }}</span>
-              </div>
-              <div class="detail-item">
-                <label>تاریخ ثبت:</label>
-                <span>{{ selectedRepair.date }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="detail-section">
             <h4>اطلاعات دستگاه</h4>
             <div class="detail-grid">
               <div class="detail-item">
                 <label>نوع دستگاه:</label>
-                <span>{{ selectedRepair.deviceType }}</span>
-              </div>
-              <div class="detail-item">
-                <label>دسته‌بندی:</label>
-                <span>{{ selectedRepair.category }}</span>
+                <span>{{ selectedRepair.device_name || 'نامشخص' }}</span>
               </div>
               <div class="detail-item">
                 <label>بیانه:</label>
-                <span>{{ selectedRepair.statement.toLocaleString() }} تومان</span>
+                <span>{{ (Number(selectedRepair.prepaid) || 0).toLocaleString() }} تومان</span>
               </div>
               <div class="detail-item">
                 <label>وضعیت:</label>
@@ -171,12 +145,16 @@
                   {{ getStatusText(selectedRepair.status) }}
                 </span>
               </div>
+              <div class="detail-item">
+                <label>تاریخ تحویل:</label>
+                <span>{{ selectedRepair.delivered_at || 'نامشخص' }}</span>
+              </div>
             </div>
           </div>
 
           <div class="detail-section">
             <h4>توضیحات</h4>
-            <p class="description">{{ selectedRepair.issue }}</p>
+            <p class="description">{{ selectedRepair.device_problem || 'ندارد' }}</p>
           </div>
 
           <div class="modal-actions">
@@ -284,52 +262,46 @@ const showCustomerModal = ref(false)
 const selectedRepairParts = ref([])
 
 // Load repairs from localStorage
-onMounted(() => {
-  console.log('Component mounted, checking repairman data...')
-  
-  // Get current repairman from localStorage
-  const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]')
-  const currentRepairmanId = localStorage.getItem('currentRepairmanId')
-  
-  console.log('Current repairman ID:', currentRepairmanId)
-  console.log('Available repairmen:', repairmen)
-  
-  if (currentRepairmanId) {
-    const foundRepairman = repairmen.find(r => r.id === Number(currentRepairmanId))
-    console.log('Found repairman:', foundRepairman)
-    
-    if (foundRepairman) {
-      currentRepairman.value = {
-        id: foundRepairman.id,
-        fullName: foundRepairman.fullName || foundRepairman.name,
-        phone: foundRepairman.phone,
-        specialty: foundRepairman.specialty || 'general',
-        status: foundRepairman.status || 'active'
-      }
-      console.log('Set current repairman:', currentRepairman.value)
-      
-      // Load repairs from both sources
-      const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      const repairmanSpecificRepairs = JSON.parse(localStorage.getItem(`repairman_${currentRepairman.value.id}_repairs`) || '[]')
-      
-      // Merge repairs, preferring repairman-specific data if available
-      const mergedRepairs = savedRepairs.map(repair => {
-        const repairmanRepair = repairmanSpecificRepairs.find(r => r.id === repair.id)
-        return repairmanRepair || repair
-      })
-      
-      // Filter by current repairman and update repairs
-      repairs.value = mergedRepairs.filter(repair => repair.repairmanId === currentRepairman.value.id)
-      console.log('Loaded repairs:', repairs.value)
-    } else {
-      console.log('Repairman not found, redirecting to login...')
-      router.push('/login')
-    }
-  } else {
-    console.log('No repairman ID found, redirecting to login...')
-    router.push('/login')
+onMounted(async () => {
+  const token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+  const currentRepairmanId = localStorage.getItem('currentRepairmanId');
+  if (!token || !currentRepairmanId) {
+    router.push('/login');
+    return;
   }
-})
+
+  // مقداردهی اطلاعات تعمیرکار برای پنل
+  const repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]');
+  const foundRepairman = repairmen.find(r => r.id == currentRepairmanId);
+  if (foundRepairman) {
+    currentRepairman.value = {
+      id: foundRepairman.id,
+      fullName: foundRepairman.fullName || foundRepairman.name,
+      phone: foundRepairman.phone,
+      specialty: foundRepairman.specialty || 'general',
+      status: foundRepairman.status || 'active'
+    }
+  }
+
+  try {
+    // دریافت لیست تعمیرات از API (آدرس باید با /api/ شروع شود)
+    const { $axios } = useNuxtApp ? useNuxtApp() : { $axios: null };
+    if ($axios) {
+      const response = await $axios.get('/technician-device', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
+      repairs.value = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.result || []);
+      console.log('داده دریافتی از API:', repairs.value);
+    }
+  } catch (error) {
+    console.error('خطا در دریافت لیست تعمیرات:', error, error?.response?.data);
+    alert('خطا در دریافت لیست تعمیرات از سرور: ' + (error?.response?.data?.message || error.message || 'خطای ناشناخته'));
+    repairs.value = [];
+  }
+});
 
 // Add a watch to monitor repairs changes
 watch(repairs, (newRepairs) => {
@@ -385,10 +357,11 @@ const filteredRepairs = computed(() => {
 
 const getStatusText = (status) => {
   const statusMap = {
-    'pending': 'در انتظار بررسی',
-    'in-progress': 'در حال انجام',
-    'completed': 'تکمیل شده',
-    'delivered': 'تکمیل شده'
+    'received': 'دریافت شده',
+    'in_progress': 'در حال انجام',
+    'fixed': 'تعمیر شده',
+    'delivered': 'تحویل داده شده',
+    'canceled': 'لغو شده'
   }
   return statusMap[status] || status
 }
@@ -429,17 +402,26 @@ const updateStatus = (newStatus) => {
   }
 }
 
-const startRepair = () => {
+const startRepair = async () => {
   if (selectedRepair.value) {
-    selectedRepair.value.status = 'in-progress'
-    // Update in localStorage
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
+    try {
+      const { $axios } = useNuxtApp ? useNuxtApp() : { $axios: null };
+      if ($axios) {
+        const response = await $axios.patch(`/device/repair/${selectedRepair.value.id}`, {
+          status: 'in_progress'
+        });
+        // اگر موفق بود، وضعیت را در فرانت هم تغییر بده
+        selectedRepair.value.status = 'in_progress';
+        const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id);
+        if (index !== -1) {
+          repairs.value[index] = { ...repairs.value[index], status: 'in_progress' };
+        }
+        // به صفحه شروع تعمیر برو
+        navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`);
+      }
+    } catch (error) {
+      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
     }
-    // Navigate to start_repairs page
-    navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`)
   }
 }
 
@@ -460,7 +442,7 @@ const completeRepair = () => {
     }
 
     // Update status to completed
-    selectedRepair.value.status = 'completed'
+    selectedRepair.value.status = 'fixed'
     const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
     if (index !== -1) {
       repairs.value[index] = selectedRepair.value
@@ -472,7 +454,7 @@ const completeRepair = () => {
 
 const revertToInProgress = () => {
   if (selectedRepair.value) {
-    selectedRepair.value.status = 'in-progress'
+    selectedRepair.value.status = 'in_progress'
     const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
     if (index !== -1) {
       repairs.value[index] = selectedRepair.value
@@ -538,8 +520,8 @@ const modalActions = computed(() => {
   if (!selectedRepair.value) return []
   
   const actions = []
-  
-  if (selectedRepair.value.status === 'pending') {
+  // هماهنگ با مقادیر واقعی status از API
+  if (selectedRepair.value.status === 'received') {
     actions.push({
       text: 'شروع تعمیر',
       icon: 'fas fa-tools',
@@ -548,7 +530,7 @@ const modalActions = computed(() => {
     })
   }
   
-  if (selectedRepair.value.status === 'in-progress') {
+  if (selectedRepair.value.status === 'in_progress') {
     actions.push(
       {
         text: 'ادامه تعمیر',
@@ -565,32 +547,16 @@ const modalActions = computed(() => {
     )
   }
   
-  if (selectedRepair.value.status === 'completed') {
-    if (!selectedRepair.value.adminMarkedReady) {
-      actions.push({
-        text: 'بازگشت به حالت در حال انجام',
-        icon: 'fas fa-undo',
-        class: 'btn-warning',
-        action: revertToInProgress
-      })
-    } else {
-      actions.push(
-        {
-          text: 'لیست قطعات تعویض شده',
-          icon: 'fas fa-list',
-          class: 'btn-info',
-          action: showPartsList
-        },
-        {
-          text: 'مشخصات مشتری',
-          icon: 'fas fa-user',
-          class: 'btn-primary',
-          action: showCustomerDetails
-        }
-      )
-    }
+  if (selectedRepair.value.status === 'fixed') {
+    actions.push({
+      text: 'بازگشت به حالت در حال انجام',
+      icon: 'fas fa-undo',
+      class: 'btn-warning',
+      action: revertToInProgress
+    })
   }
   
+  // delivered و canceled معمولاً دکمه ندارند
   return actions
 })
 </script>

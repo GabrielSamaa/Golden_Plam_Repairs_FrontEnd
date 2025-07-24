@@ -130,6 +130,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useNuxtApp } from '#app'
 
 definePageMeta({
   layout: 'admin',
@@ -203,9 +204,37 @@ onMounted(() => {
   calculateTodayStats()
 })
 
-const loadRepairs = () => {
-  const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-  repairs.value = savedRepairs
+const loadRepairs = async () => {
+  const { $axios } = useNuxtApp();
+  let token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
+  const role = localStorage.getItem('role');
+  if (role !== '1') {
+    alert('فقط ادمین می‌تواند لیست دستگاه‌های آماده تحویل را مشاهده کند.');
+    repairs.value = [];
+    return;
+  }
+  try {
+    // دریافت لیست دستگاه‌های آماده تحویل از API
+    const response = await $axios.get('/device/fixed-devices ', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    if (response.data && Array.isArray(response.data)) {
+      repairs.value = response.data;
+    } else if (response.data && Array.isArray(response.data.data)) {
+      repairs.value = response.data.data;
+    } else {
+      repairs.value = [];
+      alert('داده‌ای از سرور دریافت نشد یا فرمت نامعتبر بود.');
+    }
+  } catch (error) {
+    console.error('خطا در دریافت لیست دستگاه‌های آماده تحویل:', error);
+    repairs.value = [];
+    alert('خطا در دریافت لیست دستگاه‌های آماده تحویل از سرور.');
+  }
 }
 
 const calculateTodayStats = () => {
@@ -218,9 +247,38 @@ const calculateTodayStats = () => {
   todayRevenue.value = todayDeliveries.reduce((sum, repair) => sum + repair.statement, 0)
 }
 
-const markAsReadyForDelivery = (repair) => {
+const markAsReadyForDelivery = async (repair) => {
+  const { $axios } = useNuxtApp();
+  let token = sessionStorage.getItem('auth_token');
+  if (!token) token = localStorage.getItem('auth_token');
+  const role = localStorage.getItem('role');
+  if (role !== '1') {
+    alert('فقط ادمین می‌تواند پیامک آماده تحویل را ارسال کند. لطفاً با حساب ادمین وارد شوید.');
+    return;
+  }
   if (confirm('آیا از آماده‌سازی این دستگاه برای تحویل اطمینان دارید؟')) {
     try {
+      // ارسال درخواست به API برای ارسال پیامک
+      try {
+        const response = await $axios.post('/delivery/v_code', {
+          tracking_number: repair.trackingNumber,
+          phone: repair.phone
+        }, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        })
+        if (response.data && response.data.success) {
+          alert('پیامک با موفقیت ارسال شد!')
+        } else {
+          alert('ارسال پیامک موفق نبود: ' + (response.data?.message || 'خطا'))
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError)
+        alert('خطا در ارسال پیامک: ' + (apiError?.response?.data?.message || apiError.message))
+      }
       // به‌روزرسانی در آرایه محلی
       const index = repairs.value.findIndex(r => r.id === repair.id)
       if (index !== -1) {
@@ -234,7 +292,6 @@ const markAsReadyForDelivery = (repair) => {
           deliveryDate: null
         }
         repairs.value[index] = updatedRepair
-
         // به‌روزرسانی در localStorage
         const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
         const globalIndex = allRepairs.findIndex(r => r.id === repair.id)
@@ -242,14 +299,12 @@ const markAsReadyForDelivery = (repair) => {
           allRepairs[globalIndex] = updatedRepair
           localStorage.setItem('receptions', JSON.stringify(allRepairs))
         }
-
         // به‌روزرسانی در localStorage تعمیرکار
         const repairmanId = repair.repairmanId
         if (repairmanId) {
           const repairmanRepairs = allRepairs.filter(r => r.repairmanId === repairmanId)
           localStorage.setItem(`repairman_${repairmanId}_repairs`, JSON.stringify(repairmanRepairs))
         }
-
         // پاک کردن اطلاعات تحویل قبلی اگر وجود داشته باشد
         localStorage.removeItem(`delivery_verification_${repair.id}`)
       }

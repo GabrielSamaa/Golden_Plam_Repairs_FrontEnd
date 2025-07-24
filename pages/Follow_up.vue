@@ -31,19 +31,19 @@
                   <label class="form-label">نام دستگاه:</label>
                   <div class="form-control bg-light">{{ repairData.deviceName }}</div>
                 </div>
-                <div class="col-md-6 mb-3">
+                <!-- <div class="col-md-6 mb-3">
                   <label class="form-label">دسته بندی:</label>
                   <div class="form-control bg-light">{{ repairData.category }}</div>
-                </div>
+                </div> -->
               </div>
-              <div class="mb-3">
+              <!-- <div class="mb-3">
                 <label class="form-label">توضیحات ظاهری:</label>
                 <div class="form-control bg-light" style="min-height: 100px;">{{ repairData.description }}</div>
-              </div>
-              <div class="mb-3">
+              </div> -->
+              <!-- <div class="mb-3">
                 <label class="form-label">مبلغ بیانه:</label>
                 <div class="form-control bg-light">{{ formattedStatement }} تومان</div>
-              </div>
+              </div> -->
             </div>
   
             <!-- بخش وضعیت تعمیرات -->
@@ -56,7 +56,7 @@
                   <div class="timeline-content">
                     <h5 class="mb-1">{{ status.title }}</h5>
                     <p class="small text-muted mb-0">{{ status.date }}</p>
-                    <p v-if="status.note" class="small mt-1">{{ status.note }}</p>
+                    <!-- <p v-if="status.note" class="small mt-1">{{ status.note }}</p> -->
                   </div>
                 </div>
               </div>

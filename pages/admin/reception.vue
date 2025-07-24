@@ -2,7 +2,7 @@
   <div class="reception-page">
     <div class="page-header">
       <h2>فرم پذیرش</h2>
-     <NuxtLink to="/Admin/Form">
+     <NuxtLink to="/admin/Form">
        <button class="btn btn-primary" @click="showReceptionForm = true">
          <i class="fas fa-plus"></i> ثبت پذیرش جدید
        </button>

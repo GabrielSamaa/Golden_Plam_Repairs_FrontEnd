@@ -229,6 +229,19 @@ const verifyCode = async () => {
         await router.push('/admin/admin_counter')
       } else if (userRole === '2') {
         localStorage.setItem('currentRepairmanId', response.data.user.id.toString())
+        // --- اضافه کردن به لیست repairmen اگر وجود ندارد ---
+        let repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]');
+        const exists = repairmen.some((r: any) => r.id === response.data.user.id);
+        if (!exists) {
+          repairmen.push({
+            id: response.data.user.id,
+            fullName: response.data.user.name,
+            phone: response.data.user.mobile || response.data.user.phone,
+            specialty: response.data.user.specialty || 'general',
+            status: response.data.user.status || 'active'
+          });
+          localStorage.setItem('repairmen', JSON.stringify(repairmen));
+        }
         await router.push('/repairman/index_repairs')
       } else {
         await router.push('/')
