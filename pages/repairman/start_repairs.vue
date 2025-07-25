@@ -266,29 +266,28 @@
       saveToSuggestedParts(part)
     })
   
-    // آماده کردن داده برای ارسال به API
     const repairId = route.query.id
     if (!repairId) {
       alert('شناسه تعمیر یافت نشد')
       return
     }
 
-    // فرض: هر قطعه باید device_id (همان repairId)، name و price داشته باشد
-    const dataToSend = parts.value.map(part => ({
-      device_id: Number(repairId),
-      name: part.name,
-      price: Number(part.price)
-    }))
+    // فرض: همه قطعات دسته‌بندی یکسان دارند (از repairInfo)
+    const categoryId = repairInfo.value?.category_id || 1
 
     try {
       const { $axios } = useNuxtApp()
-      const response = await $axios.post('/device/description', dataToSend)
-      if (response.data && response.data.success) {
-        alert('قطعات با موفقیت در دیتابیس ذخیره شدند')
-        } else {
-        alert('خطا در ذخیره قطعات: ' + (response.data?.message || 'خطای نامشخص'))
-        }
+      // ارسال هر قطعه به صورت جداگانه
+      for (const part of parts.value) {
+        await $axios.post('/device/description', {
+          description: part.name, // یا اگر توضیح جدا داری، آن را بگذار
+          price: Number(part.price),
+          category_id: categoryId
+        })
+      }
+      alert('قطعات با موفقیت در دیتابیس ذخیره شدند')
     } catch (error) {
+      console.log('خطای کامل:', error?.response?.data)
       alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))
       return
     }
