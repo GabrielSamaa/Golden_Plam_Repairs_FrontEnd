@@ -79,18 +79,31 @@
                     >
                   </td>
                   <td>
-                    <button 
+                    <!-- <button 
                       class="btn btn-sm btn-danger mx-1" 
                       @click="removePart(index)"
-                      :disabled="parts.length <= 1"
-                    >
+                      :disabled="parts.length <= 1" -->
+                    <!-- >
                       <i class="fas fa-trash"></i>
-                    </button>
+                    </button> -->
                     <button 
                       class="btn btn-sm btn-warning mx-1" 
                       @click="duplicatePart(index)"
                     >
                       <i class="fas fa-copy"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-info mx-1"
+                      @click="openEditModal(index)"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-danger mx-1"
+                      @click="deletePartFromDB(index)"
+                      v-if="part.id"
+                    >
+                      <i class="fas fa-trash-alt"></i>
                     </button>
                   </td>
                 </tr>
@@ -114,6 +127,33 @@
         </div>
       </div>
     </div>
+  <!-- مدال ویرایش قطعه -->
+  <div v-if="showEditModal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">ویرایش قطعه</h5>
+        <button type="button" class="btn-close" @click="closeEditModal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">نام قطعه</label>
+          <input type="text" class="form-control" v-model="editPartData.description">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">قیمت</label>
+          <input type="number" class="form-control" v-model="editPartData.price">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">دسته‌بندی</label>
+          <input type="number" class="form-control" v-model="editPartData.category_id">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" @click="closeEditModal">انصراف</button>
+        <button class="btn btn-primary" @click="submitEditPart">ذخیره تغییرات</button>
+      </div>
+    </div>
+  </div>
   </template>
   
   <script setup>
@@ -126,7 +166,10 @@
   const repairInfo = ref(null)
   const showSuggestionList = ref(-1)
   const filteredParts = ref([])
-  
+  const showEditModal = ref(false)
+  const editPartIndex = ref(null)
+  const editPartData = ref({ id: null, description: '', price: 0, category_id: 1 })
+
   // لیست قطعات
   const parts = ref([
     { name: '', price: 0 }
@@ -140,19 +183,26 @@
   })
   
   // بارگذاری اطلاعات تعمیر
-  onMounted(() => {
+  onMounted(async () => {
     const repairId = route.query.id
     if (repairId) {
       const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
       repairInfo.value = repairs.find(r => r.id === Number(repairId))
-      
-      // بارگذاری قطعات ذخیره شده برای این تعمیر
-      const savedParts = localStorage.getItem(`repair_parts_${repairId}`)
-      if (savedParts) {
-        parts.value = JSON.parse(savedParts)
-      }
+      await fetchPartsFromDB(repairId)
     }
   })
+
+  const fetchPartsFromDB = async (repairId) => {
+    try {
+      const { $axios } = useNuxtApp()
+      const response = await $axios.get('/device/description', { params: { device_id: repairId } })
+      parts.value = Array.isArray(response.data)
+        ? response.data.map(part => ({ ...part, name: part.description }))
+        : []
+    } catch (e) {
+      parts.value = []
+    }
+  }
   
   // بارگذاری قطعات پیشنهادی از localStorage
   const savedParts = computed(() => {
@@ -251,6 +301,57 @@
     // این تابع برای محاسبه reactive است
     // چون از computed استفاده کردیم، نیاز به اجرای دستی نیست
   }
+
+  const openEditModal = (index) => {
+    const part = parts.value[index]
+    editPartIndex.value = index
+    editPartData.value = {
+      id: part.id,
+      description: part.name || part.description || '',
+      price: part.price,
+      category_id: part.category_id || repairInfo.value?.category_id || 1
+    }
+    showEditModal.value = true
+  }
+  const closeEditModal = () => {
+    showEditModal.value = false
+  }
+  const submitEditPart = async () => {
+    const { id, description, price, category_id } = editPartData.value
+    if (!id) {
+      alert('شناسه قطعه نامعتبر است')
+      return
+    }
+    try {
+      const { $axios } = useNuxtApp()
+      await $axios.put(`/device/description/${id}`, {
+        description,
+        price: Number(price),
+        category_id: Number(category_id)
+      })
+      alert('قطعه با موفقیت ویرایش شد')
+      closeEditModal()
+      await fetchPartsFromDB(route.query.id)
+    } catch (error) {
+      alert('خطا در ویرایش قطعه: ' + (error?.response?.data?.message || error.message))
+    }
+  }
+  const deletePartFromDB = async (index) => {
+    const part = parts.value[index]
+    if (!part.id) {
+      alert('شناسه قطعه نامعتبر است')
+      return
+    }
+    if (!confirm('آیا از حذف این قطعه مطمئن هستید؟')) return
+    try {
+      const { $axios } = useNuxtApp()
+      await $axios.delete(`/device/description/${part.id}`)
+      alert('قطعه با موفقیت حذف شد')
+      await fetchPartsFromDB(route.query.id)
+    } catch (error) {
+      alert('خطا در حذف قطعه: ' + (error?.response?.data?.message || error.message))
+    }
+  }
   
   // ثبت نهایی قطعات
   const submitParts = async () => {
@@ -260,12 +361,12 @@
       alert('لطفاً اطلاعات تمام قطعات را تکمیل کنید')
       return
     }
-  
+
     // ذخیره قطعات در لیست پیشنهادات
     parts.value.forEach(part => {
       saveToSuggestedParts(part)
     })
-  
+
     const repairId = route.query.id
     if (!repairId) {
       alert('شناسه تعمیر یافت نشد')
@@ -277,24 +378,24 @@
 
     try {
       const { $axios } = useNuxtApp()
-      // ارسال هر قطعه به صورت جداگانه
+      // فقط قطعات جدید (بدون id) را ثبت کن
       for (const part of parts.value) {
-        await $axios.post('/device/description', {
-          description: part.name, // یا اگر توضیح جدا داری، آن را بگذار
-          price: Number(part.price),
-          category_id: categoryId
-        })
+        if (!part.id) {
+          await $axios.post('/device/description', {
+            description: part.name,
+            price: Number(part.price),
+            category_id: categoryId
+          })
+        }
       }
-      alert('قطعات با موفقیت در دیتابیس ذخیره شدند')
+      alert('قطعات جدید با موفقیت در دیتابیس ذخیره شدند')
+      await fetchPartsFromDB(repairId)
     } catch (error) {
       console.log('خطای کامل:', error?.response?.data)
       alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))
       return
     }
 
-    // ذخیره قطعات در localStorage (در صورت نیاز)
-    localStorage.setItem(`repair_parts_${repairId}`, JSON.stringify(parts.value))
-    
     // بازگشت به صفحه لیست تعمیرات
     router.push('/repairman/index_repairs')
   }
@@ -410,5 +511,46 @@
   
   .position-relative {
     position: relative;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 320px;
+    max-width: 90vw;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 12px;
+  }
+  .modal-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .btn-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
   }
   </style>
