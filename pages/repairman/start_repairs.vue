@@ -390,6 +390,10 @@
       }
       alert('قطعات جدید با موفقیت در دیتابیس ذخیره شدند')
       await fetchPartsFromDB(repairId)
+
+      // ذخیره وضعیت در localStorage برای استفاده در صفحه لیست تعمیرات
+      localStorage.setItem(`repair_parts_${repairId}`, JSON.stringify(parts.value));
+
     } catch (error) {
       console.log('خطای کامل:', error?.response?.data)
       alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))

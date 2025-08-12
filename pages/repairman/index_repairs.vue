@@ -432,25 +432,35 @@ const continueRepair = () => {
   }
 }
 
-const completeRepair = () => {
+const completeRepair = async () => {
   if (selectedRepair.value) {
     // Check if parts are saved
-    const savedParts = localStorage.getItem(`repair_parts_${selectedRepair.value.id}`)
+    const savedParts = localStorage.getItem(`repair_parts_${selectedRepair.value.id}`);
     if (!savedParts) {
-      alert('لطفاً ابتدا قطعات تعمیر را ثبت کنید')
-      return
+      alert('لطفاً ابتدا قطعات تعمیر را ثبت کنید');
+      return;
     }
 
-    // Update status to completed
-    selectedRepair.value.status = 'fixed'
-    const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id)
-    if (index !== -1) {
-      repairs.value[index] = selectedRepair.value
-      localStorage.setItem('receptions', JSON.stringify(repairs.value))
+    try {
+      const { $axios } = useNuxtApp ? useNuxtApp() : { $axios: null };
+      if ($axios) {
+        await $axios.patch(`/device/repair/${selectedRepair.value.id}`, {
+          status: 'fixed'
+        });
+
+        // Update status locally after successful API call
+        selectedRepair.value.status = 'fixed';
+        const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id);
+        if (index !== -1) {
+          repairs.value[index].status = 'fixed';
+        }
+        closeModal();
+      }
+    } catch (error) {
+      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
     }
-    closeModal()
   }
-}
+};
 
 const revertToInProgress = () => {
   if (selectedRepair.value) {

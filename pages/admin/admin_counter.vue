@@ -19,8 +19,8 @@
           <i class="fas fa-check-circle"></i>
         </div>
         <div class="stat-info">
-          <h3>{{ deliveredCount }}</h3>
-          <p>دستگاه‌های تحویل شده امروز</p>
+          <h3>{{ deliveredTodayCount }}</h3>
+          <p>دستگاه‌های تحویل داده شده امروز</p>
         </div>
       </div>
       <div class="stat-card">
@@ -37,7 +37,7 @@
           <i class="fas fa-money-bill-wave"></i>
         </div>
         <div class="stat-info">
-          <h3>{{ todayRevenue.toLocaleString() }} تومان</h3>
+          <h3>{{ todayIncome.toLocaleString() }} تومان</h3>
           <p>درآمد امروز</p>
         </div>
       </div>
@@ -70,20 +70,22 @@
           <thead>
             <tr>
               <th>شماره پیگیری</th>
-              <th>مشتری</th>
-              <th>دستگاه</th>
-              <th>مبلغ</th>
+              <th>نام مشتری</th>
+              <th>نام دستگاه</th>
+              <th>کد رهگیری</th>
+              <th>تاریخ دریافت</th>
               <th>تاریخ تکمیل</th>
               <th>عملیات</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="repair in filteredRepairs" :key="repair.id">
-              <td>{{ repair.trackingNumber }}</td>
-              <td>{{ repair.customerName }}</td>
-              <td>{{ repair.deviceType }}</td>
-              <td>{{ repair.statement.toLocaleString() }} تومان</td>
-              <td>{{ repair.completionDate || 'نامشخص' }}</td>
+              <td>{{ repair.verification_code }}</td>
+              <td>{{ repair.customer ? repair.customer.name : 'نامشخص' }}</td>
+              <td>{{ repair.device_name }}</td>
+              <td>{{ repair.verification_code }}</td>
+              <td>{{ repair.received_at ? new Date(repair.received_at).toLocaleDateString('fa-IR') : 'نامشخص' }}</td>
+              <td>{{ repair.updated_at ? new Date(repair.updated_at).toLocaleDateString('fa-IR') : 'نامشخص' }}</td>
               <td>
                 <button 
                   class="btn btn-sm btn-success me-2" 
@@ -129,292 +131,188 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useNuxtApp } from '#app'
+ import { ref, computed, onMounted } from 'vue';
+ import { useNuxtApp } from '#app';
+ import axios from 'axios';
 
-definePageMeta({
+ definePageMeta({
   layout: 'admin',
   middleware: ['admin']
-})
+ });
 
-const searchQuery = ref('')
-const sortBy = ref('date')
-const repairs = ref([])
-const deliveredCount = ref(0)
-const todayRevenue = ref(0)
+ const searchQuery = ref('');
+ const sortBy = ref('date');
+ const repairs = ref([]);
+ const deliveredTodayCount = ref(0);
+ const todayIncome = ref(0);
+ const { $axios } = useNuxtApp();
 
-// محاسبه آمار
-const completedRepairs = computed(() => {
-  return repairs.value.filter(repair => repair.status === 'completed')
-})
-
-const pendingDeliveryCount = computed(() => {
-  return repairs.value.filter(repair => 
-    repair.status === 'completed' && !repair.readyForDelivery
-  ).length
-})
-
-// پاک کردن جستجو
-const clearSearch = () => {
-  searchQuery.value = ''
-}
-
-// فیلتر و مرتب‌سازی تعمیرات
-const filteredRepairs = computed(() => {
-  let result = repairs.value.filter(repair => {
-    // فقط تعمیرات تکمیل شده را نمایش بده
-    if (repair.status !== 'completed') {
-      return false
-    }
-
-    // اگر جستجویی انجام نشده، همه را نمایش بده
-    if (!searchQuery.value) {
-      return true
-    }
-
-    const searchLower = searchQuery.value.toLowerCase()
+ const filteredRepairs = computed(() => {
+  if (!searchQuery.value) {
+    return repairs.value;
+  }
+  const lowerCaseQuery = searchQuery.value.toLowerCase();
+  return repairs.value.filter(repair => {
     return (
-      repair.trackingNumber.toLowerCase().includes(searchLower) ||
-      repair.customerName.toLowerCase().includes(searchLower) ||
-      repair.deviceType.toLowerCase().includes(searchLower) ||
-      repair.phone.toLowerCase().includes(searchLower) ||
-      repair.category.toLowerCase().includes(searchLower) ||
-      repair.issue.toLowerCase().includes(searchLower) ||
-      (repair.parts && repair.parts.some(part => part.name.toLowerCase().includes(searchLower))) ||
-      repair.statement.toString().includes(searchLower) ||
-      (repair.completionDate && repair.completionDate.toLowerCase().includes(searchLower))
-    )
-  })
+      (repair.verification_code && repair.verification_code.toLowerCase().includes(lowerCaseQuery)) ||
+      (repair.customer && repair.customer.name.toLowerCase().includes(lowerCaseQuery)) ||
+      (repair.device_name && repair.device_name.toLowerCase().includes(lowerCaseQuery)) ||
+      (repair.customer && repair.customer.mobile.toLowerCase().includes(lowerCaseQuery))
+    );
+  });
+ });
 
-  // مرتب‌سازی
-  result.sort((a, b) => {
-    if (sortBy.value === 'date') {
-      return (b.completionDate || '').localeCompare(a.completionDate || '')
-    } else {
-      return b.statement - a.statement
-    }
-  })
+ const completedRepairs = computed(() => {
+  return repairs.value.filter(repair => repair.status === 'fixed');
+ });
 
-  return result
-})
+ const pendingDeliveryCount = computed(() => {
+  return repairs.value.filter(repair => 
+    repair.status === 'fixed' && !repair.readyForDelivery
+  ).length;
+ });
 
-// بارگذاری داده‌ها
-onMounted(() => {
-  loadRepairs()
-  calculateTodayStats()
-})
+ const clearSearch = () => {
+  searchQuery.value = '';
+ };
 
-const loadRepairs = async () => {
-  const { $axios } = useNuxtApp();
-  let token = sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
-  const role = localStorage.getItem('role');
-  if (role !== '1') {
-    alert('فقط ادمین می‌تواند لیست دستگاه‌های آماده تحویل را مشاهده کند.');
-    repairs.value = [];
-    return;
-  }
+ const loadRepairs = async () => {
+  console.log('Attempting to load repairs...');
   try {
-    // دریافت لیست دستگاه‌های آماده تحویل از API
-    const response = await $axios.get('/device/fixed-devices ', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+    const token = localStorage.getItem('token');
+    console.log('Using token:', token ? 'Token found' : 'Token not found');
+    const response = await $axios.get('/device/fixed-devices', {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (response.data && Array.isArray(response.data)) {
-      repairs.value = response.data;
-    } else if (response.data && Array.isArray(response.data.data)) {
-      repairs.value = response.data.data;
-    } else {
-      repairs.value = [];
-      alert('داده‌ای از سرور دریافت نشد یا فرمت نامعتبر بود.');
+    console.log('API response received:', response);
+    console.log('Repairs data:', response.data);
+    repairs.value = response.data;
+    if (!response.data || response.data.length === 0) {
+      console.log('No repairs data returned from API.');
     }
   } catch (error) {
-    console.error('خطا در دریافت لیست دستگاه‌های آماده تحویل:', error);
-    repairs.value = [];
-    alert('خطا در دریافت لیست دستگاه‌های آماده تحویل از سرور.');
+    console.error('Error loading repairs:', error);
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
+    alert('خطا در بارگذاری لیست تعمیرات.');
   }
-}
+ };
 
-const calculateTodayStats = () => {
-  const today = new Date().toLocaleDateString('fa-IR')
-  const todayDeliveries = repairs.value.filter(repair => 
-    repair.status === 'delivered' && repair.deliveryDate === today
-  )
-  
-  deliveredCount.value = todayDeliveries.length
-  todayRevenue.value = todayDeliveries.reduce((sum, repair) => sum + repair.statement, 0)
-}
+ const loadDashboardStats = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { 'Authorization': `Bearer ${token}` };
 
-const markAsReadyForDelivery = async (repair) => {
-  const { $axios } = useNuxtApp();
-  let token = sessionStorage.getItem('auth_token');
-  if (!token) token = localStorage.getItem('auth_token');
-  const role = localStorage.getItem('role');
-  if (role !== '1') {
-    alert('فقط ادمین می‌تواند پیامک آماده تحویل را ارسال کند. لطفاً با حساب ادمین وارد شوید.');
+    const [
+      deliveredTodayResponse,
+      incomeTodayResponse
+    ] = await Promise.all([
+      $axios.get('/device/count-delivered-today', { headers }),
+      $axios.get('/financial/income-today', { headers })
+    ]);
+
+    deliveredTodayCount.value = deliveredTodayResponse.data.count;
+    todayIncome.value = incomeTodayResponse.data.income;
+
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error);
+    alert('خطا در بارگذاری آمارهای داشبورد.');
+  }
+ };
+
+ onMounted(() => {
+  console.log('Component mounted. Checking user role...');
+  const userRole = localStorage.getItem('role');
+  console.log('User role from localStorage:', userRole);
+  if (userRole === 'admin' || userRole === 'super-admin' || userRole === 'counter' || userRole === '1') {
+    loadRepairs();
+    loadDashboardStats();
+  }
+ });
+
+ const checkDeliveryStatus = (repair) => {
+  return repair.readyForDelivery && !repair.deliveredToCustomer;
+ };
+
+ const goToVerification = (repair) => {
+  localStorage.setItem('deliveryVerificationInfo', JSON.stringify({
+    repairId: repair.id,
+    expectedCode: repair.verification_code,
+    returnUrl: '/admin/admin_counter'
+  }));
+  const { $router } = useNuxtApp();
+  $router.push('/admin/delivery_verification');
+ };
+
+ const markAsReadyForDelivery = async (repair) => {
+  if (!repair.verification_code) {
+    alert('خطا: کد رهگیری برای این دستگاه وجود ندارد و نمی‌توان پیامک ارسال کرد.');
     return;
   }
-  if (confirm('آیا از آماده‌سازی این دستگاه برای تحویل اطمینان دارید؟')) {
+
+  console.log('Sending v_code to API:', repair.verification_code);
+
+  if (confirm(`آیا از آماده تحویل کردن دستگاه با شماره پیگیری ${repair.verification_code} اطمینان دارید؟`)) {
     try {
-      // ارسال درخواست به API برای ارسال پیامک
-      try {
-        const response = await $axios.post('/delivery/v_code', {
-          tracking_number: repair.trackingNumber,
-          phone: repair.phone
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        })
-        if (response.data && response.data.success) {
-          alert('پیامک با موفقیت ارسال شد!')
-        } else {
-          alert('ارسال پیامک موفق نبود: ' + (response.data?.message || 'خطا'))
+      const { $axios } = useNuxtApp();
+      
+      await $axios.patch(`/device/repair/${repair.id}`, {
+        readyForDelivery: true
+      });
+
+      const token = localStorage.getItem('token');
+      const smsApi = axios.create({
+        baseURL: 'http://localhost:8000/api',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         }
-      } catch (apiError) {
-        console.error('API error:', apiError)
-        alert('خطا در ارسال پیامک: ' + (apiError?.response?.data?.message || apiError.message))
-      }
-      // به‌روزرسانی در آرایه محلی
-      const index = repairs.value.findIndex(r => r.id === repair.id)
+      });
+      await smsApi.post('/delivery/v_code', { 
+        v_code: repair.verification_code
+      });
+      
+      alert('پیامک کد تایید برای مشتری ارسال شد. دستگاه آماده تحویل است.');
+
+      const index = repairs.value.findIndex(r => r.id === repair.id);
       if (index !== -1) {
-        const updatedRepair = {
-          ...repair,
-          status: 'completed',
-          readyForDelivery: true,
-          deliveredToCustomer: false,
-          completionDate: new Date().toLocaleDateString('fa-IR'),
-          adminMarkedReady: true,
-          deliveryDate: null
-        }
-        repairs.value[index] = updatedRepair
-        // به‌روزرسانی در localStorage
-        const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-        const globalIndex = allRepairs.findIndex(r => r.id === repair.id)
-        if (globalIndex !== -1) {
-          allRepairs[globalIndex] = updatedRepair
-          localStorage.setItem('receptions', JSON.stringify(allRepairs))
-        }
-        // به‌روزرسانی در localStorage تعمیرکار
-        const repairmanId = repair.repairmanId
-        if (repairmanId) {
-          const repairmanRepairs = allRepairs.filter(r => r.repairmanId === repairmanId)
-          localStorage.setItem(`repairman_${repairmanId}_repairs`, JSON.stringify(repairmanRepairs))
-        }
-        // پاک کردن اطلاعات تحویل قبلی اگر وجود داشته باشد
-        localStorage.removeItem(`delivery_verification_${repair.id}`)
+        repairs.value.splice(index, 1);
       }
+
     } catch (error) {
-      console.error('Error updating repair status:', error)
-      alert('خطا در به‌روزرسانی وضعیت تعمیر')
+      console.error('Error in delivery process:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.errors?.v_code?.[0] || error.message || 'خطا در فرآیند آماده‌سازی برای تحویل.';
+      alert(`خطا: ${errorMessage}`);
     }
   }
-}
+ };
 
-// هدایت به صفحه تأیید کد
-const goToVerification = (repair) => {
-  try {
-    if (!repair || !repair.id) {
-      console.error('Invalid repair data:', repair)
-      alert('اطلاعات تعمیر نامعتبر است')
-      return
-    }
-
-    // بررسی وضعیت تعمیر
-    if (!repair.readyForDelivery) {
-      alert('این تعمیر هنوز آماده تحویل نیست')
-      return
-    }
-
-    if (repair.deliveredToCustomer) {
-      alert('این دستگاه قبلاً به مشتری تحویل داده شده است')
-      return
-    }
-
-    // ذخیره اطلاعات تعمیر در localStorage
-    const deliveryData = {
-      ...repair,
-      verificationAttempts: 0,
-      lastVerificationAttempt: null
-    }
-    
-    localStorage.setItem('currentDeliveryRepair', JSON.stringify(deliveryData))
-    
-    // هدایت به صفحه تأیید کد
-    const url = `/admin/verify-delivery-code?id=${repair.id}`
-    navigateTo(url)
-  } catch (error) {
-    console.error('Error in goToVerification:', error)
-    alert('خطا در انتقال به صفحه تأیید کد')
-  }
-}
-
-// لغو وضعیت آماده تحویل
-const cancelReadyForDelivery = (repair) => {
+ const cancelReadyForDelivery = (repair) => {
   if (confirm('آیا از لغو وضعیت آماده تحویل این دستگاه اطمینان دارید؟')) {
-    // به‌روزرسانی در آرایه محلی
-    const index = repairs.value.findIndex(r => r.id === repair.id)
-    if (index !== -1) {
-      const updatedRepair = {
-        ...repair,
-        readyForDelivery: false,
-        deliveredToCustomer: false,
-        deliveryDate: null
-      }
-      repairs.value[index] = updatedRepair
-
-      // به‌روزرسانی در localStorage
-      const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      const globalIndex = allRepairs.findIndex(r => r.id === repair.id)
-      if (globalIndex !== -1) {
-        allRepairs[globalIndex] = updatedRepair
-        localStorage.setItem('receptions', JSON.stringify(allRepairs))
-      }
+    const repairToUpdate = repairs.value.find(r => r.id === repair.id);
+    if (repairToUpdate) {
+      repairToUpdate.readyForDelivery = false;
+      repairs.value = [...repairs.value];
+      alert('وضعیت آماده تحویل لغو شد.');
     }
   }
-}
+ };
 
-// ارسال به بایگانی
-const moveToArchive = (repair) => {
-  if (confirm('آیا از ارسال این دستگاه به بایگانی اطمینان دارید؟')) {
+ const moveToArchive = async (repair) => {
+  if (confirm('آیا از انتقال این دستگاه به بایگانی اطمینان دارید؟')) {
     try {
-      const archiveItems = JSON.parse(localStorage.getItem('archiveItems') || '[]')
-      const today = new Date().toLocaleDateString('fa-IR')
-      
-      const archiveItem = {
-        ...repair,
-        archiveDate: today
-      }
-      
-      archiveItems.unshift(archiveItem)
-      localStorage.setItem('archiveItems', JSON.stringify(archiveItems))
-      
-      // حذف از لیست تعمیرات
-      const updatedRepairs = repairs.value.filter(r => r.id !== repair.id)
-      repairs.value = updatedRepairs
-      localStorage.setItem('receptions', JSON.stringify(updatedRepairs))
+      const { $api } = useNuxtApp();
+      await $api.post(`/repairs/${repair.id}/archive`);
+      repairs.value = repairs.value.filter(r => r.id !== repair.id);
+      alert('دستگاه با موفقیت به بایگانی منتقل شد.');
     } catch (error) {
-      console.error('Error moving to archive:', error)
-      alert('خطا در ارسال به بایگانی')
+      console.error('Error moving to archive:', error);
+      alert('خطا در ارسال به بایگانی.');
     }
   }
-}
-
-// اضافه کردن تابع برای بررسی وضعیت تحویل
-const checkDeliveryStatus = (repair) => {
-  if (!repair) return false
-  
-  // بررسی وضعیت‌های مختلف
-  const isReady = repair.readyForDelivery === true
-  const isNotDelivered = repair.deliveredToCustomer !== true
-  const hasValidStatus = repair.status === 'completed'
-  
-  return isReady && isNotDelivered && hasValidStatus
-}
+ };
 </script>
 
 <style scoped>

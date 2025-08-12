@@ -227,7 +227,7 @@ onMounted(async () => {
   // Load editing reception if exists
   const editingReception = JSON.parse(localStorage.getItem('editingReception') || 'null')
   if (editingReception) {
-    console.log('Debug - Loading editing reception:', editingReception)
+    // console.log('Debug - Loading editing reception:', editingReception)
     form.value = {
       fullName: editingReception.customerName,
       phone: editingReception.phone,
@@ -243,16 +243,16 @@ onMounted(async () => {
   }
 
   // بررسی وضعیت کلی localStorage
-  const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-  console.log('Debug - Current localStorage state:', {
-    receptionsCount: receptions.length,
-    receptions: receptions.map(r => ({
-      id: r.id,
-      trackingNumber: r.trackingNumber,
-      phone: r.phone,
-      customerName: r.customerName
-    }))
-  })
+  // const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+  // console.log('Debug - Current localStorage state:', {
+  //   receptionsCount: receptions.length,
+  //   receptions: receptions.map(r => ({
+  //     id: r.id,
+  //     trackingNumber: r.trackingNumber,
+  //     phone: r.phone,
+  //     customerName: r.customerName
+  //   }))
+  // })
 
   // Fetch device categories from API
   try {
@@ -295,13 +295,13 @@ const submitForm = async () => {
     return
   }
 
-  console.log('Debug - Submitting form:', {
-    formData: {
-      ...form.value,
-      phone: normalizedPhone
-    },
-    editingReceptionId: editingReceptionId.value
-  })
+  // console.log('Debug - Submitting form:', {
+  //   formData: {
+  //     ...form.value,
+  //     phone: normalizedPhone
+  //   },
+  //   editingReceptionId: editingReceptionId.value
+  // })
 
   if (editingReceptionId.value) {
     // Update existing reception
@@ -324,76 +324,56 @@ const submitForm = async () => {
       }
       
       receptions[index] = updatedReception
-      console.log('Debug - Updating reception:', updatedReception)
+      // console.log('Debug - Updating reception:', updatedReception)
       
       localStorage.setItem('receptions', JSON.stringify(receptions))
       localStorage.removeItem('editingReception')
       // ثبت اطلاعات دستگاه در دیتابیس
-      try {
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        await $axios.post('/device/repair', {
-          name: form.value.fullName,
-          mobile: normalizedPhone,
-          technician_id: form.value.repairmanId || null,
-          device_category_id: form.value.category,
-          device_name: form.value.deviceName,
-          device_problem: form.value.description, // توضیحات ظاهری اینجا قرار بگیرد
-          repair_details: null,
-          prepaid: form.value.statement,
-          repair_price: 0,
-          price: 0,
-          status: form.value.status || 'pending',
-          repair_status: 'not_started',
-          verification_code: verificationCode,
-          received_at: form.value.receptionDate,
-          delivered_at: form.value.deliveryDate,
-          delivered_real_at: null
-        }, {
-          headers: {
-            'Authorization': `Bearer ${sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')}`
-          }
-        });
-        alert("اطلاعات با موفقیت بروزرسانی شد!")
-      } catch (e) {
-        console.error('خطا در بروزرسانی اطلاعات دستگاه در دیتابیس:', e, e?.response?.data)
-        alert('خطا در بروزرسانی اطلاعات: ' + (e?.response?.data?.message || JSON.stringify(e?.response?.data) || e.message))
-      }
-      navigateTo('/admin/reception')
+      
+      
     }
   } else {
     // Create new reception
-    const newReception = {
-      id: Date.now(),
-      trackingNumber: `GP-${Math.floor(Math.random() * 1000000)}`,
-      date: form.value.receptionDate,
-      customerName: form.value.fullName,
-      deviceType: form.value.deviceName,
-      issue: form.value.description,
-      status: 'pending',
-      phone: normalizedPhone,
-      category: form.value.category,
-      statement: form.value.statement,
-      repairmanId: form.value.repairmanId,
-      receptionDate: form.value.receptionDate,
-      deliveryDate: form.value.deliveryDate,
-    }
+    // const newReception = {
+    //   id: Date.now(),
+    //   trackingNumber: `GP-${Math.floor(Math.random() * 1000000)}`,
+    //   date: form.value.receptionDate,
+    //   customerName: form.value.fullName,
+    //   deviceType: form.value.deviceName,
+    //   issue: form.value.description,
+    //   status: 'pending',
+    //   phone: normalizedPhone,
+    //   category: form.value.category,
+    //   statement: form.value.statement,
+    //   repairmanId: form.value.repairmanId,
+    //   receptionDate: form.value.receptionDate,
+    //   deliveryDate: form.value.deliveryDate,
+    // }
 
-    console.log('Debug - Creating new reception:', newReception)
+    // console.log('Debug - Creating new reception:', newReception)
 
-    const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-    receptions.unshift(newReception)
-    localStorage.setItem('receptions', JSON.stringify(receptions))
+    // const receptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    // receptions.unshift(newReception)
+    // localStorage.setItem('receptions', JSON.stringify(receptions))
     
     // ثبت اطلاعات دستگاه در دیتابیس
     try {
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // // تبدیل تاریخ‌های فارسی به میلادی
+      // const receivedAt = form.value.receptionDate ? 
+      //   moment(form.value.receptionDate, 'jYYYY/jMM/jDD').format('YYYY-MM-DD HH:mm:ss') : null
+      // const deliveredAt = form.value.deliveryDate ? 
+      //   moment(form.value.deliveryDate, 'jYYYY/jMM/jDD').format('YYYY-MM-DD HH:mm:ss') : null
+      
       const response = await $axios.post('/device/repair', {
         name: form.value.fullName,
         mobile: normalizedPhone,
         technician_id: form.value.repairmanId || null,
         device_category_id: form.value.category,
         device_name: form.value.deviceName,
-        device_problem: form.value.description, // توضیحات ظاهری اینجا قرار بگیرد
+        device_problem: null,
+        appearance_details: form.value.description, // توضیحات ظاهری
         repair_details: null,
         prepaid: form.value.statement,
         repair_price: 0,
@@ -403,7 +383,7 @@ const submitForm = async () => {
         verification_code: verificationCode,
         received_at: form.value.receptionDate,
         delivered_at: form.value.deliveryDate,
-        delivered_real_at: null
+        delivered_real_at: null,
       }, {
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token')}`
@@ -420,14 +400,15 @@ const submitForm = async () => {
       alert('خطا در ثبت اطلاعات دستگاه: ' + (e?.response?.data?.message || JSON.stringify(e?.response?.data) || e.message))
     }
     // بررسی نهایی داده‌های ذخیره شده
-    const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
-    console.log('Debug - Saved receptions:', {
-      count: savedReceptions.length,
-      latest: savedReceptions[0]
-    })
+    // const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
+    // console.log('Debug - Saved receptions:', {
+    //   count: savedReceptions.length,
+    //   latest: savedReceptions[0]
+    // })
     
     alert("فرم با موفقیت ثبت شد!")
     navigateTo('/admin/reception')
+    // console.error('response')
   }
 }
 

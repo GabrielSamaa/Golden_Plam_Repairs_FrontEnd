@@ -121,12 +121,14 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useNuxtApp } from '#app';
 
 definePageMeta({
   layout: 'admin',
   middleware: ['admin']
 })
 
+const { $axios } = useNuxtApp();
 const router = useRouter()
 const showRepairmanForm = ref(false)
 const isEditing = ref(false)
@@ -207,40 +209,49 @@ const closeRepairmanForm = () => {
   }
 }
 
-const submitRepairmanForm = () => {
-  // Validate phone number
-  if (!repairmanForm.value.phone.match(/^09[0-9]{9}$/)) {
-    alert('لطفاً شماره تماس را به درستی وارد کنید')
-    return
+const submitRepairmanForm = async () => {
+  // Basic validation
+  if (!repairmanForm.value.phone || !repairmanForm.value.fullName) {
+    alert('لطفاً تمام فیلدهای اجباری را پر کنید.');
+    return;
   }
 
-  if (isEditing.value) {
-    // Update existing repairman
-    const index = repairmen.value.findIndex(r => r.id === editingId.value)
-    if (index !== -1) {
-      repairmen.value[index] = {
-        ...repairmen.value[index],
-        fullName: repairmanForm.value.fullName,
-        phone: repairmanForm.value.phone,
-        specialty: repairmanForm.value.specialty,
-        status: repairmanForm.value.status
+  try {
+    if (isEditing.value) {
+      // Logic for updating an existing repairman (API call to update)
+      // This part can be implemented later if needed
+      const index = repairmen.value.findIndex(r => r.id === repairmanForm.value.id);
+      if (index !== -1) {
+        repairmen.value[index] = { ...repairmanForm.value };
+        alert('اطلاعات تعمیرکار با موفقیت ویرایش شد.');
       }
-    }
-  } else {
-    // Add new repairman
-    const newRepairman = {
-      id: Date.now(),
-      fullName: repairmanForm.value.fullName,
-      phone: repairmanForm.value.phone,
-      specialty: repairmanForm.value.specialty,
-      status: repairmanForm.value.status,
-      createdAt: new Date().toISOString()
-    }
-    repairmen.value.unshift(newRepairman)
-  }
+    } else {
+      // Logic for adding a new repairman
+      // Match the payload keys with the backend validation rules
+      const newUserPayload = {
+        mobile: repairmanForm.value.phone,       // Changed from 'phone'
+        name: repairmanForm.value.fullName,       // Changed from 'full_name'
+        specialty: repairmanForm.value.specialty,
+        status: repairmanForm.value.status,
+        password: repairmanForm.value.phone, // Default password is phone number
+        role: 2  // Changed from 'repairman' to the numeric value for the role
+      };
 
-  localStorage.setItem('repairmen', JSON.stringify(repairmen.value))
-  closeRepairmanForm()
+      const response = await $axios.post('/user/create_user', newUserPayload);
+      
+      // Add the new repairman from the response to the local list
+      repairmen.value.push(response.data);
+      alert('تعمیرکار جدید با موفقیت اضافه شد.');
+    }
+
+    // Save to localStorage (optional, but good for persistence)
+    localStorage.setItem('repairmen', JSON.stringify(repairmen.value));
+    closeRepairmanForm();
+
+  } catch (error) {
+    console.error('Error submitting repairman form:', error);
+    alert('خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.');
+  }
 }
 
 const filteredRepairmen = computed(() => {
