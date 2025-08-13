@@ -75,6 +75,7 @@
               <th>کد رهگیری</th>
               <th>تاریخ دریافت</th>
               <th>تاریخ تکمیل</th>
+              <th>وضعیت</th>
               <th>عملیات</th>
             </tr>
           </thead>
@@ -87,40 +88,46 @@
               <td>{{ repair.received_at ? new Date(repair.received_at).toLocaleDateString('fa-IR') : 'نامشخص' }}</td>
               <td>{{ repair.updated_at ? new Date(repair.updated_at).toLocaleDateString('fa-IR') : 'نامشخص' }}</td>
               <td>
+                <span class="badge" :class="statusClass(repair.status)">{{ statusText(repair.status) }}</span>
+              </td>
+              <td>
+                <!-- دکمه تایید برای تحویل -->
                 <button 
-                  class="btn btn-sm btn-success me-2" 
-                  @click="markAsReadyForDelivery(repair)"
-                  v-if="!repair.readyForDelivery"
+                  class="btn btn-sm btn-success me-2"
+                  @click="markAsConfirmed(repair)"
+                  v-if="repair.status === 'fixed'"
                 >
                   <i class="fas fa-check"></i>
-                  آماده تحویل
+                  تایید برای تحویل
                 </button>
-                <template v-else>
-                  <button 
-                    class="btn btn-sm btn-warning me-2" 
-                    @click="cancelReadyForDelivery(repair)"
-                    v-if="!repair.deliveredToCustomer"
-                  >
-                    <i class="fas fa-times"></i>
-                    لغو آماده تحویل
-                  </button>
+
+                <!-- دکمه های مربوط به وضعیت تایید شده -->
+                <template v-if="repair.status === 'confirmed'">
                   <button 
                     class="btn btn-sm btn-primary me-2" 
-                    @click="goToVerification(repair)"
-                    v-if="checkDeliveryStatus(repair)"
+                    @click="initiateDelivery(repair)"
                   >
-                    <i class="fas fa-handshake"></i>
+                    <i class="fas fa-truck"></i>
                     تحویل به مشتری
                   </button>
                   <button 
-                    class="btn btn-sm btn-info me-2" 
-                    @click="moveToArchive(repair)"
-                    v-if="repair.deliveredToCustomer"
+                    class="btn btn-sm btn-warning me-2" 
+                    @click="cancelConfirmation(repair)"
                   >
-                    <i class="fas fa-archive"></i>
-                    ارسال به بایگانی
+                    <i class="fas fa-times"></i>
+                    لغو تایید
                   </button>
                 </template>
+
+                <!-- دکمه بایگانی برای دستگاه های تحویل شده -->
+                <button 
+                  class="btn btn-sm btn-secondary" 
+                  @click="moveToArchive(repair)"
+                  v-if="repair.status === 'delivered'"
+                >
+                  <i class="fas fa-archive"></i>
+                  ارسال به بایگانی
+                </button>
               </td>
             </tr>
           </tbody>
@@ -177,26 +184,14 @@
  };
 
  const loadRepairs = async () => {
-  console.log('Attempting to load repairs...');
   try {
-    const token = localStorage.getItem('token');
-    console.log('Using token:', token ? 'Token found' : 'Token not found');
-    const response = await $axios.get('/device/fixed-devices', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    console.log('API response received:', response);
-    console.log('Repairs data:', response.data);
+    const { $api } = useNuxtApp();
+    // این اندپوینت باید دستگاه های با وضعیت 'fixed' و 'confirmed' را برگرداند
+    const response = await $api.get('/device/fixed-devices');
     repairs.value = response.data;
-    if (!response.data || response.data.length === 0) {
-      console.log('No repairs data returned from API.');
-    }
   } catch (error) {
     console.error('Error loading repairs:', error);
-    if (error.response) {
-      console.error('Error response data:', error.response.data);
-      console.error('Error response status:', error.response.status);
-    }
-    alert('خطا در بارگذاری لیست تعمیرات.');
+    alert('خطا در بارگذاری لیست دستگاه‌ها.');
   }
  };
 
@@ -232,70 +227,64 @@
   }
  });
 
- const checkDeliveryStatus = (repair) => {
-  return repair.readyForDelivery && !repair.deliveredToCustomer;
- };
-
  const goToVerification = (repair) => {
-  localStorage.setItem('deliveryVerificationInfo', JSON.stringify({
-    repairId: repair.id,
-    expectedCode: repair.verification_code,
-    returnUrl: '/admin/admin_counter'
-  }));
-  const { $router } = useNuxtApp();
-  $router.push('/admin/delivery_verification');
+  const router = useRouter();
+  router.push(`/admin/verify-delivery-code?v_code=${repair.verification_code}`);
  };
 
- const markAsReadyForDelivery = async (repair) => {
-  if (!repair.verification_code) {
-    alert('خطا: کد رهگیری برای این دستگاه وجود ندارد و نمی‌توان پیامک ارسال کرد.');
-    return;
-  }
-
-  console.log('Sending v_code to API:', repair.verification_code);
-
-  if (confirm(`آیا از آماده تحویل کردن دستگاه با شماره پیگیری ${repair.verification_code} اطمینان دارید؟`)) {
+ // مرحله ۱: تغییر وضعیت به 'confirmed'
+ const markAsConfirmed = async (repair) => {
+  if (confirm(`آیا از تایید دستگاه با شماره پیگیری ${repair.verification_code} برای تحویل اطمینان دارید؟`)) {
     try {
-      const { $axios } = useNuxtApp();
-      
-      await $axios.patch(`/device/repair/${repair.id}`, {
-        readyForDelivery: true
+      const { $api } = useNuxtApp();
+      await $api.patch(`/device/repair/${repair.id}`, {
+        status: 'confirmed'
       });
-
-      const token = localStorage.getItem('token');
-      const smsApi = axios.create({
-        baseURL: 'http://localhost:8000/api',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      await smsApi.post('/delivery/v_code', { 
-        v_code: repair.verification_code
-      });
-      
-      alert('پیامک کد تایید برای مشتری ارسال شد. دستگاه آماده تحویل است.');
-
       const index = repairs.value.findIndex(r => r.id === repair.id);
       if (index !== -1) {
-        repairs.value.splice(index, 1);
+        repairs.value[index].status = 'confirmed';
       }
-
+      alert('دستگاه برای تحویل تایید شد.');
     } catch (error) {
-      console.error('Error in delivery process:', error);
-      const errorMessage = error.response?.data?.message || error.response?.data?.errors?.v_code?.[0] || error.message || 'خطا در فرآیند آماده‌سازی برای تحویل.';
-      alert(`خطا: ${errorMessage}`);
+      console.error('Error confirming repair:', error);
+      alert('خطا در تایید دستگاه.');
     }
   }
  };
 
- const cancelReadyForDelivery = (repair) => {
-  if (confirm('آیا از لغو وضعیت آماده تحویل این دستگاه اطمینان دارید؟')) {
-    const repairToUpdate = repairs.value.find(r => r.id === repair.id);
-    if (repairToUpdate) {
-      repairToUpdate.readyForDelivery = false;
-      repairs.value = [...repairs.value];
-      alert('وضعیت آماده تحویل لغو شد.');
+ // مرحله ۲: شروع فرآیند تحویل و ارسال پیامک
+ const initiateDelivery = async (repair) => {
+  if (confirm(`پیامک کد تایید برای مشتری ارسال شود؟`)) {
+    try {
+      const { $api } = useNuxtApp();
+      await $api.post('/delivery/v_code', { 
+        v_code: repair.verification_code
+      });
+      alert('پیامک کد تایید برای مشتری ارسال شد.');
+      goToVerification(repair);
+    } catch (error) {
+      console.error('Error sending verification code:', error);
+      alert('خطا در ارسال پیامک کد تایید.');
+    }
+  }
+ };
+
+ // مرحله ۳: لغو وضعیت تایید و بازگشت به 'fixed'
+ const cancelConfirmation = async (repair) => {
+  if (confirm('آیا از لغو وضعیت تایید این دستگاه اطمینان دارید؟')) {
+    try {
+      const { $api } = useNuxtApp();
+      await $api.patch(`/device/repair/${repair.id}`, {
+        status: 'fixed'
+      });
+      const index = repairs.value.findIndex(r => r.id === repair.id);
+      if (index !== -1) {
+        repairs.value[index].status = 'fixed';
+      }
+      alert('وضعیت تایید لغو شد و به حالت تعمیر شده بازگشت.');
+    } catch (error) {
+      console.error('Error cancelling confirmation:', error);
+      alert('خطا در لغو وضعیت تایید.');
     }
   }
  };
@@ -312,6 +301,24 @@
       alert('خطا در ارسال به بایگانی.');
     }
   }
+ };
+
+ const statusText = (status) => {
+  const statuses = {
+    'fixed': 'تعمیر شده',
+    'confirmed': 'تایید شده برای تحویل',
+    'delivered': 'تحویل داده شده'
+  };
+  return statuses[status] || status;
+ };
+
+ const statusClass = (status) => {
+  const classes = {
+    'fixed': 'badge-info',
+    'confirmed': 'badge-success',
+    'delivered': 'badge-secondary'
+  };
+  return classes[status] || '';
  };
 </script>
 
@@ -496,6 +503,16 @@
 
 .btn-primary:hover {
   background: #2980b9;
+}
+
+.badge-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.badge-secondary {
+  background: #6c757d;
+  color: white;
 }
 
 @media (max-width: 768px) {

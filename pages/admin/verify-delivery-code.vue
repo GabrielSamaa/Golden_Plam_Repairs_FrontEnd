@@ -1,6 +1,6 @@
 <template>
   <div class="verification-page">
-    <div class="verification-container">
+    <div v-if="currentRepair" class="verification-container">
       <div class="verification-header">
         <h2>تأیید تحویل دستگاه</h2>
         <button class="cancel-btn" @click="cancelDelivery">
@@ -9,32 +9,32 @@
         </button>
       </div>
 
-      <div v-if="currentRepair" class="repair-info">
+      <div class="repair-info">
         <div class="info-section">
           <h3>اطلاعات تعمیر</h3>
           <div class="info-grid">
             <div class="info-item">
-              <label>شماره پیگیری:</label>
-              <span>{{ currentRepair.trackingNumber }}</span>
+              <label>کد رهگیری:</label>
+              <span>{{ currentRepair.verification_code }}</span>
             </div>
             <div class="info-item">
               <label>نام مشتری:</label>
-              <span>{{ currentRepair.customerName }}</span>
+              <span>{{ currentRepair.customer.name }}</span>
             </div>
             <div class="info-item">
               <label>نوع دستگاه:</label>
-              <span>{{ currentRepair.deviceType }}</span>
+              <span>{{ currentRepair.device_name }}</span>
             </div>
             <div class="info-item">
               <label>مبلغ:</label>
-              <span>{{ currentRepair.statement.toLocaleString() }} تومان</span>
+              <span>{{ currentRepair.statement ? currentRepair.statement.toLocaleString() : '0' }} تومان</span>
             </div>
           </div>
         </div>
 
-        <div v-if="!currentRepair.deliveredToCustomer" class="verification-section">
+        <div v-if="currentRepair.status !== 'delivered'" class="verification-section">
           <div class="verification-info">
-            <p class="test-code-hint">کد تست: 123456</p>
+            <p class="test-code-hint">کد تأیید ارسال شده به مشتری را وارد کنید</p>
           </div>
           
           <div class="code-input-section">
@@ -72,14 +72,14 @@
           <p>این دستگاه قبلاً به مشتری تحویل داده شده است</p>
         </div>
       </div>
+    </div>
 
-      <div v-else class="error-container">
-        <i class="fas fa-exclamation-circle"></i>
-        <p>{{ errorMessage || 'اطلاعات تعمیر یافت نشد' }}</p>
-        <button class="back-btn" @click="navigateTo('/admin/admin_counter')">
-          بازگشت به لیست
-        </button>
-      </div>
+    <div v-else class="error-container">
+      <i class="fas fa-exclamation-circle"></i>
+      <p>{{ errorMessage || 'اطلاعات تعمیر یافت نشد' }}</p>
+      <button class="back-btn" @click="navigateTo('/admin/admin_counter')">
+        بازگشت به لیست
+      </button>
     </div>
   </div>
 </template>
@@ -87,135 +87,75 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { navigateTo } from 'nuxt/app'
+import { useRoute } from 'vue-router'
+import { useNuxtApp } from '#app'
 
 const verificationCode = ref('')
 const errorMessage = ref('')
 const successMessage = ref('')
 const currentRepair = ref(null)
-const verificationAttempts = ref(0)
-const lastAttemptTime = ref(null)
 const isVerifying = ref(false)
-const TEST_CODE = '123456'
 
-// بارگذاری اطلاعات تعمیر
-onMounted(() => {
+const route = useRoute();
+const { $api } = useNuxtApp();
+const v_code = route.query.v_code;
+
+// بارگذاری اطلاعات تعمیر بر اساس کد رهگیری از URL
+onMounted(async () => {
+  if (!v_code) {
+    errorMessage.value = 'کد رهگیری در آدرس صفحه وجود ندارد.';
+    return;
+  }
+
   try {
-    const repairData = localStorage.getItem('currentDeliveryRepair')
-    if (!repairData) {
-      errorMessage.value = 'اطلاعات تعمیر یافت نشد'
-      return
-    }
-
-    currentRepair.value = JSON.parse(repairData)
-    verificationAttempts.value = currentRepair.value.verificationAttempts || 0
-    lastAttemptTime.value = currentRepair.value.lastVerificationAttempt || null
-
-    if (currentRepair.value.deliveredToCustomer) {
-      errorMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است'
+    const response = await $api.get(`/device/by-code/${v_code}`);
+    currentRepair.value = response.data;
+    if (currentRepair.value.status === 'delivered') {
+      successMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است';
     }
   } catch (error) {
-    console.error('Error loading repair data:', error)
-    errorMessage.value = 'خطا در بارگذاری اطلاعات تعمیر'
+    console.error('Error loading repair data:', error);
+    errorMessage.value = error.response?.data?.message || 'خطا در بارگذاری اطلاعات تعمیر';
   }
-})
+});
 
 // بررسی کد تأیید
 const verifyCode = async () => {
-  if (isVerifying.value) return
-  
+  if (isVerifying.value) return;
+  isVerifying.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+
   try {
-    isVerifying.value = true
-    errorMessage.value = ''
-    successMessage.value = ''
+    const response = await $api.post('/delivery/verify', {
+      v_code: currentRepair.value.verification_code,
+      user_code: verificationCode.value
+    });
 
-    if (!currentRepair.value) {
-      errorMessage.value = 'اطلاعات تعمیر یافت نشد'
-      return
-    }
+    // آپدیت وضعیت دستگاه به 'delivered'
+    await $api.patch(`/device/repair/${currentRepair.value.id}`, {
+      status: 'delivered'
+    });
 
-    if (currentRepair.value.deliveredToCustomer) {
-      errorMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است'
-      return
-    }
+    successMessage.value = response.data.message || 'دستگاه با موفقیت تحویل داده شد.';
+    currentRepair.value.status = 'delivered';
+    setTimeout(() => {
+      navigateTo('/admin/admin_counter');
+    }, 2000);
 
-    // بررسی تعداد تلاش‌ها
-    if (verificationAttempts.value >= 3) {
-      const timeSinceLastAttempt = Date.now() - (lastAttemptTime.value || 0)
-      const minutesToWait = 5
-      const remainingTime = Math.ceil((minutesToWait * 60 * 1000 - timeSinceLastAttempt) / 1000 / 60)
-      
-      if (timeSinceLastAttempt < minutesToWait * 60 * 1000) {
-        errorMessage.value = `به دلیل تلاش‌های ناموفق، لطفاً ${remainingTime} دقیقه دیگر مجدداً تلاش کنید`
-        return
-      } else {
-        verificationAttempts.value = 0
-        lastAttemptTime.value = null
-      }
-    }
-
-    // بررسی کد
-    if (verificationCode.value === TEST_CODE) {
-      successMessage.value = 'کد تأیید صحیح است'
-      
-      // به‌روزرسانی وضعیت تحویل
-      const allRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-      const index = allRepairs.findIndex(r => r.id === currentRepair.value.id)
-      
-      if (index !== -1) {
-        const updatedRepair = {
-          ...currentRepair.value,
-          deliveredToCustomer: true,
-          deliveryDate: new Date().toLocaleDateString('fa-IR'),
-          deliveryTime: new Date().toLocaleTimeString('fa-IR')
-        }
-        
-        allRepairs[index] = updatedRepair
-        localStorage.setItem('receptions', JSON.stringify(allRepairs))
-        
-        if (updatedRepair.repairmanId) {
-          const repairmanRepairs = allRepairs.filter(r => r.repairmanId === updatedRepair.repairmanId)
-          localStorage.setItem(`repairman_${updatedRepair.repairmanId}_repairs`, JSON.stringify(repairmanRepairs))
-        }
-        
-        localStorage.removeItem('currentDeliveryRepair')
-        localStorage.removeItem(`delivery_verification_${currentRepair.value.id}`)
-        
-        setTimeout(() => {
-          navigateTo('/admin/admin_counter')
-        }, 2000)
-      }
-    } else {
-      errorMessage.value = 'کد تأیید اشتباه است'
-      verificationAttempts.value++
-      lastAttemptTime.value = Date.now()
-      
-      if (currentRepair.value) {
-        currentRepair.value.verificationAttempts = verificationAttempts.value
-        currentRepair.value.lastVerificationAttempt = lastAttemptTime.value
-        localStorage.setItem('currentDeliveryRepair', JSON.stringify(currentRepair.value))
-      }
-      
-      verificationCode.value = ''
-    }
   } catch (error) {
-    console.error('Error in verification:', error)
-    errorMessage.value = 'خطا در بررسی کد تأیید'
+    console.error('Error verifying code:', error);
+    errorMessage.value = error.response?.data?.message || 'کد وارد شده صحیح نیست یا خطایی رخ داده است.';
   } finally {
-    isVerifying.value = false
+    isVerifying.value = false;
   }
-}
+};
 
 const cancelDelivery = () => {
   if (confirm('آیا از لغو فرآیند تحویل اطمینان دارید؟')) {
-    try {
-      localStorage.removeItem('currentDeliveryRepair')
-      navigateTo('/admin/admin_counter')
-    } catch (error) {
-      console.error('Error canceling delivery:', error)
-      errorMessage.value = 'خطا در لغو فرآیند تحویل'
-    }
+    navigateTo('/admin/admin_counter');
   }
-}
+};
 </script>
 
 <style scoped>
