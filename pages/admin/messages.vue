@@ -25,15 +25,15 @@
       >
         <div class="message-header">
           <div class="sender-info">
-            <h3>{{ message.sender }}</h3>
-            <span class="date">{{ message.date }}</span>
+            <h3>{{ message.name }}</h3>
+            <span class="date">{{ new Date(message.created_at).toLocaleDateString('fa-IR') }}</span>
           </div>
           <div class="message-status">
             <span v-if="!message.read" class="badge">جدید</span>
           </div>
         </div>
         <div class="message-preview">
-          {{ message.content.substring(0, 100) }}...
+          <strong>{{ message.subject }}:</strong> {{ message.message.substring(0, 100) }}...
         </div>
       </div>
     </div>
@@ -49,20 +49,28 @@
           <div class="message-details">
             <div class="detail-item">
               <label>فرستنده:</label>
-              <span>{{ selectedMessage.sender }}</span>
+              <span>{{ selectedMessage.name }}</span>
             </div>
             <div class="detail-item">
               <label>ایمیل:</label>
               <span>{{ selectedMessage.email }}</span>
             </div>
             <div class="detail-item">
+              <label>شماره تماس:</label>
+              <span>{{ selectedMessage.phone }}</span>
+            </div>
+            <div class="detail-item">
+              <label>موضوع:</label>
+              <span>{{ selectedMessage.subject }}</span>
+            </div>
+            <div class="detail-item">
               <label>تاریخ:</label>
-              <span>{{ selectedMessage.date }}</span>
+              <span>{{ new Date(selectedMessage.created_at).toLocaleString('fa-IR') }}</span>
             </div>
             <div class="detail-item">
               <label>متن پیام:</label>
               <div class="message-content">
-                {{ selectedMessage.content }}
+                {{ selectedMessage.message }}
               </div>
             </div>
           </div>
@@ -82,25 +90,34 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useNuxtApp } from '#app'
 
 definePageMeta({
   layout: 'admin',
   middleware: ['admin']
 })
 
+const { $api } = useNuxtApp()
 const searchQuery = ref('')
 const showMessageModal = ref(false)
-const showReplyModal = ref(false)
 const selectedMessage = ref(null)
-const replyContent = ref('')
-
-// خواندن پیام‌ها از localStorage
 const messages = ref([])
+const loading = ref(true)
+const error = ref(null)
 
-// تابع برای بارگذاری پیام‌ها
-const loadMessages = () => {
-  const storedMessages = JSON.parse(localStorage.getItem('userMessages') || '[]')
-  messages.value = storedMessages
+// تابع برای بارگذاری پیام‌ها از API
+const loadMessages = async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const response = await $api.get('user/Message/')
+    messages.value = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  } catch (err) {
+    console.error('Error loading messages:', err)
+    error.value = 'خطا در بارگذاری پیام‌ها. لطفاً دوباره تلاش کنید.'
+  } finally {
+    loading.value = false
+  }
 }
 
 // بارگذاری پیام‌ها در زمان لود صفحه
@@ -112,51 +129,38 @@ const filteredMessages = computed(() => {
   if (!searchQuery.value) return messages.value
   const query = searchQuery.value.toLowerCase()
   return messages.value.filter(message => 
-    message.sender.toLowerCase().includes(query) ||
-    message.content.toLowerCase().includes(query) ||
-    message.email.toLowerCase().includes(query) ||
-    message.date.toLowerCase().includes(query) ||
-    (message.trackingNumber && message.trackingNumber.toLowerCase().includes(query)) ||
-    (message.subject && message.subject.toLowerCase().includes(query))
+    (message.name && message.name.toLowerCase().includes(query)) ||
+    (message.message && message.message.toLowerCase().includes(query)) ||
+    (message.email && message.email.toLowerCase().includes(query)) ||
+    (message.subject && message.subject.toLowerCase().includes(query)) ||
+    (message.phone && message.phone.includes(query))
   )
 })
 
 const viewMessage = (message) => {
   selectedMessage.value = message
   showMessageModal.value = true
-  if (!message.read) {
-    // به‌روزرسانی وضعیت خوانده شدن پیام
-    message.read = true
-    const index = messages.value.findIndex(m => m.id === message.id)
-    if (index !== -1) {
-      messages.value[index] = { ...message }
-      localStorage.setItem('userMessages', JSON.stringify(messages.value))
-    }
-  }
+  // Here you might want to mark the message as read via an API call in the future
 }
 
 const replyToMessage = () => {
-  if (selectedMessage.value) {
-    const email = selectedMessage.value.email
-    const subject = `پاسخ به پیام شما - ${selectedMessage.value.trackingNumber || ''}`
-    const body = `سلام ${selectedMessage.value.sender} عزیز،\n\n`
-    
-    // ساخت لینک mailto با اطلاعات پیش‌فرض
-    const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-    
-    // باز کردن ایمیل کلاینت پیش‌فرض
+  if (selectedMessage.value && selectedMessage.value.email) {
+    const mailtoLink = `mailto:${selectedMessage.value.email}?subject=RE: ${selectedMessage.value.subject}`
     window.location.href = mailtoLink
-    
-    // بستن مودال
     showMessageModal.value = false
   }
 }
 
-const deleteMessage = () => {
-  if (confirm('آیا از حذف این پیام اطمینان دارید؟')) {
-    messages.value = messages.value.filter(m => m.id !== selectedMessage.value.id)
-    localStorage.setItem('userMessages', JSON.stringify(messages.value))
-    showMessageModal.value = false
+const deleteMessage = async () => {
+  if (selectedMessage.value && confirm('آیا از حذف این پیام اطمینان دارید؟')) {
+    try {
+      await $api.delete(`user/Message/${selectedMessage.value.id}`)
+      messages.value = messages.value.filter(m => m.id !== selectedMessage.value.id)
+      showMessageModal.value = false
+    } catch (err) {
+      console.error('Error deleting message:', err)
+      alert('خطا در حذف پیام.')
+    }
   }
 }
 </script>

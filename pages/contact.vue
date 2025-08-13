@@ -77,10 +77,18 @@
                   <textarea id="message" v-model="formData.message" required></textarea>
                 </div>
                 
-                <button type="submit" class="submit-btn">
+                <button type="submit" class="submit-btn" :disabled="loading">
                   <i class="fas fa-paper-plane"></i>
                   ارسال پیام
                 </button>
+                
+                <div v-if="successMessage" class="success-message">
+                  {{ successMessage }}
+                </div>
+                
+                <div v-if="errorMessage" class="error-message">
+                  {{ errorMessage }}
+                </div>
               </form>
             </div>
           </div>
@@ -93,6 +101,14 @@
   
   <script setup>
   import Footer from '~/components/Footer.vue'
+  import { ref, reactive } from 'vue'
+  import { useNuxtApp } from '#app'
+
+  const { $api } = useNuxtApp()
+  const loading = ref(false)
+  const errorMessage = ref('')
+  const successMessage = ref('')
+
   const formData = reactive({
     name: '',
     email: '',
@@ -101,37 +117,39 @@
     message: ''
   })
   
-  const submitForm = () => {
-    // ایجاد یک پیام جدید
-    const newMessage = {
-      id: Date.now(), // استفاده از timestamp به عنوان شناسه یکتا
-      sender: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      subject: formData.subject,
-      content: formData.message,
-      date: new Date().toLocaleDateString('fa-IR'),
-      read: false
+  const submitForm = async () => {
+    loading.value = true
+    errorMessage.value = ''
+    successMessage.value = ''
+
+    try {
+        await $api.post('user/Message', {
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            subject: formData.subject,
+            message: formData.message
+        })
+
+        successMessage.value = 'پیام شما با موفقیت ارسال شد!'
+        // Clear the form
+        formData.name = ''
+        formData.email = ''
+        formData.phone = ''
+        formData.subject = ''
+        formData.message = ''
+    } catch (error) {
+        if (error.response && error.response.data) {
+            const messages = Object.values(error.response.data).flat()
+            errorMessage.value = messages.join('\n')
+        } else {
+            errorMessage.value = 'خطایی در ارسال پیام رخ داد. لطفاً دوباره تلاش کنید.'
+        }
+        console.error('Error submitting form:', error)
+    } finally {
+        loading.value = false
     }
-
-    // دریافت پیام‌های موجود از localStorage
-    const existingMessages = JSON.parse(localStorage.getItem('userMessages') || '[]')
-    
-    // اضافه کردن پیام جدید به لیست
-    existingMessages.unshift(newMessage)
-    
-    // ذخیره لیست به‌روز شده در localStorage
-    localStorage.setItem('userMessages', JSON.stringify(existingMessages))
-
-    // پاک کردن فرم
-    formData.name = ''
-    formData.email = ''
-    formData.phone = ''
-    formData.subject = ''
-    formData.message = ''
-
-    alert('پیام شما با موفقیت ارسال شد!')
-  }
+}
   </script>
   
   <style scoped>
@@ -287,6 +305,18 @@
     box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
   }
   
+  .success-message {
+    color: #2ecc71;
+    font-size: 1.2rem;
+    margin-top: 1rem;
+  }
+  
+  .error-message {
+    color: #e74c3c;
+    font-size: 1.2rem;
+    margin-top: 1rem;
+  }
+  
   /* حالت موبایل */
   @media (max-width: 768px) {
     .contact-title {
@@ -302,5 +332,3 @@
     }
   }
   </style>
-
-
