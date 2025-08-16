@@ -139,8 +139,10 @@ const verifyCode = async () => {
 
     successMessage.value = response.data.message || 'دستگاه با موفقیت تحویل داده شد.';
     currentRepair.value.status = 'delivered';
+
+    // بعد از 2 ثانیه رفتن به صفحه financial با باز شدن مودال همان دستگاه
     setTimeout(() => {
-      navigateTo('/admin/admin_counter');
+      navigateTo(`/admin/financial?open_modal_device=${currentRepair.value.id}`);
     }, 2000);
 
   } catch (error) {
@@ -150,6 +152,7 @@ const verifyCode = async () => {
     isVerifying.value = false;
   }
 };
+
 
 const cancelDelivery = () => {
   if (confirm('آیا از لغو فرآیند تحویل اطمینان دارید؟')) {
