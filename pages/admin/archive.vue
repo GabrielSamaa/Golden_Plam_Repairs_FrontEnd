@@ -40,7 +40,8 @@
             <th>نام مشتری</th>
             <th>نوع دستگاه</th>
             <th>مشکل</th>
-            <th>وضعیت</th>
+            <th>تاریخ تحویل</th>
+            <th>مبلغ کل</th>
             <th>عملیات</th>
           </tr>
         </thead>
@@ -51,15 +52,11 @@
             <td>{{ item.customerName }}</td>
             <td>{{ item.deviceType }}</td>
             <td>{{ item.issue }}</td>
-            <td>
-              <span :class="'status-' + item.status">{{ getStatusText(item.status) }}</span>
-            </td>
+            <td>{{ item.archiveDate }}</td>
+            <td>{{ item.statement.toLocaleString() }} تومان</td>
             <td>
               <button class="btn btn-sm btn-outline-primary" @click="viewArchiveItem(item.id)">
                 <i class="fas fa-eye"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger" @click="deleteArchiveItem(item.id)">
-                <i class="fas fa-trash"></i>
               </button>
             </td>
           </tr>
@@ -144,16 +141,29 @@ onMounted(() => {
   loadArchiveItems()
 })
 
-const loadArchiveItems = () => {
+const loadArchiveItems = async () => {
   try {
-    const savedArchiveItems = JSON.parse(localStorage.getItem('archiveItems') || '[]')
-    console.log('Loaded archive items:', savedArchiveItems) // Debug log
-    archiveItems.value = savedArchiveItems
+    const { $api } = useNuxtApp();
+    const response = await $api.get('/device/fixed-devices');
+    // فیلتر کردن فقط دستگاه‌های تحویل داده شده
+    archiveItems.value = response.data.filter(item => item.status === 'delivered')
+      .map(item => ({
+        id: item.id,
+        trackingNumber: item.verification_code,
+        date: new Date(item.created_at).toLocaleDateString('fa-IR'),
+        customerName: item.customer?.name || 'نامشخص',
+        deviceType: item.device_name,
+        issue: item.description,
+        status: 'completed',
+        statement: item.total_cost || 0,
+        parts: item.parts || [],
+        archiveDate: new Date(item.updated_at).toLocaleDateString('fa-IR')
+      }));
   } catch (error) {
-    console.error('Error loading archive items:', error)
-    archiveItems.value = []
+    console.error('Error loading archive items:', error);
+    archiveItems.value = [];
   }
-}
+};
 
 const filteredArchive = computed(() => {
   let result = archiveItems.value

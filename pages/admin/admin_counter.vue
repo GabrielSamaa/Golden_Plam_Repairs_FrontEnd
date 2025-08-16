@@ -186,9 +186,9 @@
  const loadRepairs = async () => {
   try {
     const { $api } = useNuxtApp();
-    // این اندپوینت باید دستگاه های با وضعیت 'fixed' و 'confirmed' را برگرداند
     const response = await $api.get('/device/fixed-devices');
-    repairs.value = response.data;
+    // فیلتر کردن دستگاه‌هایی که وضعیت delivered ندارند
+    repairs.value = response.data.filter(device => device.status !== 'delivered');
   } catch (error) {
     console.error('Error loading repairs:', error);
     alert('خطا در بارگذاری لیست دستگاه‌ها.');
@@ -252,7 +252,7 @@
   }
  };
 
- // مرحله ۲: شروع فرآیند تحویل و ارسال پیامک
+ // مرحله ۲: شروع فرآیند تح Delivery و ارسال پیامک
  const initiateDelivery = async (repair) => {
   if (confirm(`پیامک کد تایید برای مشتری ارسال شود؟`)) {
     try {

@@ -57,14 +57,15 @@
                         @blur="hideSuggestions(index)"
                       >
                       <!-- لیست پیشنهادات -->
-                      <div v-if="showSuggestionList === index && filteredParts.length > 0" 
-                           class="suggestions-list">
-                        <div v-for="suggestedPart in filteredParts" 
-                             :key="suggestedPart.name"
-                             class="suggestion-item"
-                             @mousedown="selectPart(index, suggestedPart)">
-                          <span>{{ suggestedPart.name }}</span>
-                          <small class="text-muted">{{ suggestedPart.price.toLocaleString() }} تومان</small>
+                      <div v-if="showSuggestionList === index" class="suggestions-list">
+                        <div
+                          v-for="suggestion in filteredParts"
+                          :key="suggestion.name"
+                          class="suggestion-item"
+                          @mousedown="selectPart(index, suggestion)"
+                        >
+                          <span>{{ suggestion.name }}</span>
+                          <small>{{ suggestion.price.toLocaleString() }} تومان</small>
                         </div>
                       </div>
                     </div>
@@ -92,16 +93,15 @@
                     >
                       <i class="fas fa-copy"></i>
                     </button>
-                    <button
+                    <!-- <button
                       class="btn btn-sm btn-info mx-1"
                       @click="openEditModal(index)"
-                    >
-                      <i class="fas fa-edit"></i>
-                    </button>
+                    > -->
+                      <!-- <i class="fas fa-edit"></i> -->
+                    <!-- </button> -->
                     <button
                       class="btn btn-sm btn-outline-danger mx-1"
                       @click="deletePartFromDB(index)"
-                      v-if="part.id"
                     >
                       <i class="fas fa-trash-alt"></i>
                     </button>
@@ -128,7 +128,7 @@
       </div>
     </div>
   <!-- مدال ویرایش قطعه -->
-  <div v-if="showEditModal" class="modal-backdrop">
+  <!-- <div v-if="showEditModal" class="modal-backdrop">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">ویرایش قطعه</h5>
@@ -152,8 +152,8 @@
         <button class="btn btn-secondary" @click="closeEditModal">انصراف</button>
         <button class="btn btn-primary" @click="submitEditPart">ذخیره تغییرات</button>
       </div>
-    </div>
-  </div>
+    </div> -->
+  <!-- </div> -->
   </template>
   
   <script setup>
@@ -193,16 +193,34 @@
   })
 
   const fetchPartsFromDB = async (repairId) => {
-    try {
-      const { $axios } = useNuxtApp()
-      const response = await $axios.get('/device/description', { params: { device_id: repairId } })
-      parts.value = Array.isArray(response.data)
-        ? response.data.map(part => ({ ...part, name: part.description }))
-        : []
-    } catch (e) {
-      parts.value = []
+  try {
+    const { $axios } = useNuxtApp()
+    const response = await $axios.get(`/device/repair/${repairId}`)
+    
+    // پارس کردن repair_details اگر به صورت string است
+    let repairDetails
+    if (typeof response.data.repair_details === 'string') {
+      repairDetails = JSON.parse(response.data.repair_details)
+    } else {
+      repairDetails = response.data.repair_details
     }
+
+    // تبدیل به آرایه
+    parts.value = Array.isArray(repairDetails) 
+      ? repairDetails.map(part => ({
+          name: part.part_name,
+          price: Number(part.part_price),
+          id: part.part_id,
+          verification_code: part.verification_code
+        }))
+      : []
+
+    console.log('Parsed parts:', parts.value) // برای دیباگ
+  } catch (e) {
+    console.error('Error fetching device parts:', e)
+    parts.value = []
   }
+}
   
   // بارگذاری قطعات پیشنهادی از localStorage
   const savedParts = computed(() => {
@@ -237,7 +255,11 @@
   
   // انتخاب قطعه از لیست پیشنهادات
   const selectPart = (index, suggestedPart) => {
-    parts.value[index] = { ...suggestedPart }
+    parts.value[index] = { 
+      name: suggestedPart.name,
+      price: Number(suggestedPart.price),
+      id: suggestedPart.id
+    }
     calculateTotal()
     showSuggestionList.value = -1
   }
@@ -337,72 +359,159 @@
     }
   }
   const deletePartFromDB = async (index) => {
-    const part = parts.value[index]
-    if (!part.id) {
-      alert('شناسه قطعه نامعتبر است')
-      return
-    }
-    if (!confirm('آیا از حذف این قطعه مطمئن هستید؟')) return
-    try {
-      const { $axios } = useNuxtApp()
-      await $axios.delete(`/device/description/${part.id}`)
-      alert('قطعه با موفقیت حذف شد')
-      await fetchPartsFromDB(route.query.id)
-    } catch (error) {
-      alert('خطا در حذف قطعه: ' + (error?.response?.data?.message || error.message))
-    }
-  }
+  const partToDelete = parts.value[index]
+  if (!confirm('آیا از حذف این قطعه مطمئن هستید؟')) return
   
-  // ثبت نهایی قطعات
-  const submitParts = async () => {
-    // اعتبارسنجی
-    const hasEmptyFields = parts.value.some(part => !part.name.trim() || !part.price)
-    if (hasEmptyFields) {
-      alert('لطفاً اطلاعات تمام قطعات را تکمیل کنید')
-      return
+  try {
+    const repairId = route.query.id
+    const { $axios } = useNuxtApp()
+    
+    // دریافت لیست فعلی
+    const response = await $axios.get(`/device/repair/${repairId}`)
+    let repairDetails = []
+    
+    // تبدیل repair_details به آرایه اگر رشته JSON است
+    if (typeof response.data.repair_details === 'string') {
+      repairDetails = JSON.parse(response.data.repair_details)
+    } else {
+      repairDetails = response.data.repair_details || []
     }
 
-    // ذخیره قطعات در لیست پیشنهادات
-    parts.value.forEach(part => {
-      saveToSuggestedParts(part)
+    // حذف قطعه با مطابقت نام و قیمت
+    const updatedDetails = repairDetails.filter(part => 
+      !(part.part_name === partToDelete.name && 
+        Number(part.part_price) === Number(partToDelete.price))
+    )
+    
+    // آپدیت repair_details با لیست جدید
+    await $axios.patch(`/device/repair/${repairId}`, {
+      repair_details: updatedDetails
     })
 
-    const repairId = route.query.id
-    if (!repairId) {
-      alert('شناسه تعمیر یافت نشد')
-      return
-    }
-
-    // فرض: همه قطعات دسته‌بندی یکسان دارند (از repairInfo)
-    const categoryId = repairInfo.value?.category_id || 1
-
-    try {
-      const { $axios } = useNuxtApp()
-      // فقط قطعات جدید (بدون id) را ثبت کن
-      for (const part of parts.value) {
-        if (!part.id) {
-          await $axios.post('/device/description', {
-            description: part.name,
-            price: Number(part.price),
-            category_id: categoryId
-          })
-        }
-      }
-      alert('قطعات جدید با موفقیت در دیتابیس ذخیره شدند')
-      await fetchPartsFromDB(repairId)
-
-      // ذخیره وضعیت در localStorage برای استفاده در صفحه لیست تعمیرات
-      localStorage.setItem(`repair_parts_${repairId}`, JSON.stringify(parts.value));
-
-    } catch (error) {
-      console.log('خطای کامل:', error?.response?.data)
-      alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))
-      return
-    }
-
-    // بازگشت به صفحه لیست تعمیرات
-    router.push('/repairman/index_repairs')
+    // بروزرسانی لیست محلی
+    parts.value = parts.value.filter((_, i) => i !== index)
+    alert('قطعه با موفقیت حذف شد')
+    
+  } catch (error) {
+    console.error('خطا در حذف قطعه:', error)
+    alert('خطا در حذف قطعه: ' + (error.response?.data?.message || error.message))
   }
+}
+
+  const replacedParts = ref([])
+
+// بارگذاری اطلاعات تعمیر
+onMounted(async () => {
+  const repairId = route.query.id
+  if (repairId) {
+    const repairs = JSON.parse(localStorage.getItem('receptions') || '[]')
+    repairInfo.value = repairs.find(r => r.id === Number(repairId))
+    await fetchPartsFromDB(repairId)
+    await fetchReplacedParts(repairId) // بارگذاری قطعات تعویض شده
+  }
+})
+
+// تابع برای بارگذاری قطعات تعویض شده
+const fetchReplacedParts = async (repairId) => {
+  try {
+    const { $axios } = useNuxtApp()
+    const response = await $axios.get(`/device/repair/${repairId}`)
+    
+    // تبدیل به آرایه در هر حالت
+    const repairDetails = Array.isArray(response?.data?.repair_details)
+      ? response.data.repair_details
+      : []
+
+    replacedParts.value = repairDetails.filter(
+      part => part?.verification_code === response?.data?.verification_code
+    )
+
+  } catch (error) {
+    console.error('خطا در دریافت قطعات تعویض شده:', error)
+    replacedParts.value = []
+  }
+}
+
+// تابع برای فرمت تاریخ
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
+  const options = { year: 'numeric', month: 'long', day: 'numeric' }
+  return new Date(dateString).toLocaleDateString('fa-IR', options)
+}
+
+// تابع برای حذف قطعه تعویض شده
+const removeReplacedPart = async (partId, index) => {
+  if (!confirm('آیا از حذف این قطعه از تاریخچه مطمئن هستید؟')) return
+  
+  try {
+    const repairId = route.query.id
+    const { $axios } = useNuxtApp()
+    
+    // ابتدا لیست فعلی را دریافت می‌کنیم
+    const response = await $axios.get(`/device/repair/${repairId}`)
+    let repairDetails = response.data.repair_details || []
+    
+    // فیلتر کردن برای حذف قطعه مورد نظر
+    repairDetails = repairDetails.filter((_, i) => i !== index)
+    
+    // آپدیت لیست جدید
+    await $axios.patch(`/device/repair/${repairId}`, {
+      repair_details: repairDetails
+    })
+    
+    // بارگذاری مجدد لیست
+    await fetchReplacedParts(repairId)
+    alert('قطعه با موفقیت از تاریخچه حذف شد')
+  } catch (error) {
+    console.error('خطا در حذف قطعه:', error)
+    alert('خطا در حذف قطعه: ' + (error.response?.data?.message || error.message))
+  }
+}
+  
+// ثبت نهایی قطعات
+const submitParts = async () => {
+  // اعتبارسنجی
+  const hasEmptyFields = parts.value.some(part => !part.name.trim() || !part.price)
+  if (hasEmptyFields) {
+    alert('لطفاً اطلاعات تمام قطعات را تکمیل کنید')
+    return
+  }
+
+  // ذخیره قطعات در لیست پیشنهادات
+  parts.value.forEach(part => {
+    saveToSuggestedParts(part)
+  })
+
+  const repairId = route.query.id
+  if (!repairId) {
+    alert('شناسه تعمیر یافت نشد')
+    return
+  }
+
+  try {
+    const { $axios } = useNuxtApp()
+    // ساخت آرایه جدید برای repair_details
+    const newReplacedParts = parts.value.map(part => ({
+      part_id: part.id,
+      part_name: part.name,
+      part_price: Number(part.price),
+      replaced_at: new Date().toISOString()
+    }))
+
+    // آپدیت repair_details در /device/repair/{repairId}
+    await $axios.patch(`/device/repair/${repairId}`, {
+      repair_details: newReplacedParts
+    })
+
+    alert('اطلاعات قطعات با موفقیت ذخیره شدند')
+    await fetchPartsFromDB(repairId)
+    router.push('/repairman/index_repairs')
+  } catch (error) {
+    console.error('خطا در ذخیره اطلاعات:', error?.response?.data)
+    alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))
+    return
+  }
+}
   </script>
   
   <style scoped>

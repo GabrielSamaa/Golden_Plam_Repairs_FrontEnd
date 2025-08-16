@@ -48,23 +48,37 @@
       <div class="row">
         <div class="col-md-3">
           <div class="summary-card income">
-            <h3>کل درآمد</h3>
-            <p class="amount">{{ formatCurrency(totalIncome) }}</p>
+            <h3>درآمد امروز</h3>
+            <p class="amount">{{ formatCurrency(financialStats.todayIncome) }}</p>
           </div>
         </div>
         <div class="col-md-3">
-          <div class="summary-card expense">
-            <h3>کل هزینه قطعات</h3>
-            <p class="amount">{{ formatCurrency(totalPartsCost) }}</p>
+          <div class="summary-card income">
+            <h3>درآمد این ماه</h3>
+            <p class="amount">{{ formatCurrency(financialStats.monthIncome) }}</p>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="summary-card income">
+            <h3>درآمد سالانه</h3>
+            <p class="amount">{{ formatCurrency(financialStats.yearIncome) }}</p>
           </div>
         </div>
         <div class="col-md-3">
           <div class="summary-card labor">
-            <h3>دستمزد تعمیرات</h3>
-            <p class="amount">{{ formatCurrency(totalLaborCost) }}</p>
+            <h3>دستمزد تعمیرکاران</h3>
+            <p class="amount">{{ formatCurrency(financialStats.technicianIncome) }}</p>
           </div>
         </div>
-        <div class="col-md-3">
+      </div>
+      <div class="row mt-4">
+        <div class="col-md-4">
+          <div class="summary-card expense">
+            <h3>هزینه قطعات</h3>
+            <p class="amount">{{ formatCurrency(totalPartsCost) }}</p>
+          </div>
+        </div>
+        <div class="col-md-4">
           <div class="summary-card profit">
             <h3>سود خالص</h3>
             <p class="amount">{{ formatCurrency(netProfit) }}</p>
@@ -260,21 +274,57 @@ const filteredRecords = computed(() => {
   return result
 })
 
-const totalIncome = computed(() => {
-  return financialRecords.value.reduce((sum, r) => sum + r.totalCost, 0)
-})
+// اضافه کردن reactive object برای نگهداری آمار مالی
+const financialStats = ref({
+  todayIncome: 0,
+  monthIncome: 0,
+  yearIncome: 0,
+  technicianIncome: 0
+});
 
+// Load financial data
+const loadFinancialData = async () => {
+  try {
+    const { $api } = useNuxtApp();
+    const [
+      todayIncome,
+      monthIncome,
+      yearIncome,
+      technicianIncome
+    ] = await Promise.all([
+      $api.get('/financial/income-today'),
+      $api.get('/financial/income-this-month'),
+      $api.get('/financial/income-this-year'),
+      $api.get('/financial/technician-income')
+    ]);
+
+    financialStats.value = {
+      todayIncome: todayIncome.data.income || 0,
+      monthIncome: monthIncome.data.income || 0,
+      yearIncome: yearIncome.data.income || 0,
+      technicianIncome: technicianIncome.data.income || 0
+    };
+
+  } catch (error) {
+    console.error('Error loading financial data:', error);
+    alert('خطا در بارگذاری اطلاعات مالی');
+  }
+};
+
+// بروزرسانی computed properties
+const totalIncome = computed(() => financialStats.value.monthIncome);
 const totalPartsCost = computed(() => {
-  return financialRecords.value.reduce((sum, r) => sum + r.totalPartsCost, 0)
-})
-
-const totalLaborCost = computed(() => {
-  return financialRecords.value.reduce((sum, r) => sum + r.laborCost, 0)
-})
-
+  return financialRecords.value.reduce((sum, r) => sum + r.totalPartsCost, 0);
+});
+const totalLaborCost = computed(() => financialStats.value.technicianIncome);
 const netProfit = computed(() => {
-  return totalLaborCost.value
-})
+  return totalIncome.value - totalPartsCost.value - totalLaborCost.value;
+});
+
+// اضافه کردن فراخوانی تابع در onMounted
+onMounted(() => {
+  loadFinancialData();
+});
 
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat('fa-IR').format(amount) + ' تومان'
