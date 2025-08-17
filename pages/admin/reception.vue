@@ -1,5 +1,13 @@
 <template>
   <div class="reception-page">
+
+    <!-- لودینگ Overlay برای بارگذاری اولیه -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
+    </div>
+
+
     <div class="page-header">
       <h2>فرم پذیرش</h2>
      <NuxtLink to="/admin/Form">
@@ -276,6 +284,7 @@ const receptionSearch = ref('')
 const receptionStatus = ref('all')
 const receptionFromDate = ref('')
 const showReceptionForm = ref(false)
+const isLoading = ref(false);
 
 const receptionForm = ref({
   customerName: '',
@@ -291,6 +300,7 @@ const deviceCategories = ref([])
 // Load receptions from API on component mount
 onMounted(async () => {
   try {
+    isLoading.value = true
     const { $axios } = useNuxtApp()
     const response = await $axios.get('/device/repair/')
     // نگاشت فیلدهای API به ساختار مورد انتظار جدول
@@ -346,6 +356,12 @@ onMounted(async () => {
   } catch (e) {
     console.error('خطا در دریافت دسته‌بندی دستگاه:', e)
   }
+
+  finally {
+    isLoading.value = false
+  }
+
+
 })
 
 const filteredReceptions = computed(() => {
@@ -554,6 +570,37 @@ const submitReceptionForm = () => {
 </script>
 
 <style scoped>
+
+.loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
 .reception-page {
   padding: 20px;
 }

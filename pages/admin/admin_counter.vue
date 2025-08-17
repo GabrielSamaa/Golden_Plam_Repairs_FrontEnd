@@ -1,5 +1,12 @@
 <template>
   <div class="counter-page">
+    <!-- لودینگ Overlay برای بارگذاری اولیه -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
+    </div>
+
+
     <div class="page-header">
       <h2>تحویل دستگاه‌ها</h2>
     </div>
@@ -150,6 +157,7 @@
  const searchQuery = ref('');
  const sortBy = ref('date');
  const repairs = ref([]);
+ const isLoading = ref(false);
  const deliveredTodayCount = ref(0);
  const todayIncome = ref(0);
  const { $axios } = useNuxtApp();
@@ -185,6 +193,7 @@
 
  const loadRepairs = async () => {
   try {
+    isLoading.value = true
     const { $api } = useNuxtApp();
     const response = await $api.get('/device/fixed-devices');
     // فیلتر کردن دستگاه‌هایی که وضعیت delivered ندارند
@@ -210,6 +219,10 @@ toastr.options = {
   "showMethod": "fadeIn",
   "hideMethod": "fadeOut"
 }
+  }
+
+  finally {
+    isLoading.value = false
   }
  };
 
@@ -503,6 +516,37 @@ toastr.options = {
 </script>
 
 <style scoped>
+
+.loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
 .counter-page {
   padding: 20px;
 }

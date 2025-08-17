@@ -1,5 +1,13 @@
 <template>
   <div class="messages-page">
+
+    <!-- لودینگ Overlay برای بارگذاری اولیه -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
+    </div>
+
+
     <div class="page-header">
       <h2>پیام‌های کاربران</h2>
     </div>
@@ -100,6 +108,7 @@ definePageMeta({
 const { $api } = useNuxtApp()
 const searchQuery = ref('')
 const showMessageModal = ref(false)
+const isLoading = ref(false);
 const selectedMessage = ref(null)
 const messages = ref([])
 const loading = ref(true)
@@ -107,16 +116,17 @@ const error = ref(null)
 
 // تابع برای بارگذاری پیام‌ها از API
 const loadMessages = async () => {
-  loading.value = true
+  
   error.value = null
   try {
+    isLoading.value = true
     const response = await $api.get('user/Message/')
     messages.value = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   } catch (err) {
     console.error('Error loading messages:', err)
     error.value = 'خطا در بارگذاری پیام‌ها. لطفاً دوباره تلاش کنید.'
   } finally {
-    loading.value = false
+    isLoading.value = false
   }
 }
 
@@ -184,6 +194,36 @@ toastr.options = {
 </script>
 
 <style scoped>
+
+.loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
 .messages-page {
   padding: 20px;
 }

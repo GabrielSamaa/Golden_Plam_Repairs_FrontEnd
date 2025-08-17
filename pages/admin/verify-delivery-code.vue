@@ -1,5 +1,12 @@
 <template>
   <div class="verification-page">
+
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
+    </div>
+
+
     <div v-if="currentRepair" class="verification-container">
       <div class="verification-header">
         <h2>تأیید تحویل دستگاه</h2>
@@ -74,13 +81,13 @@
       </div>
     </div>
 
-    <div v-else class="error-container">
+    <!-- <div v-else class="error-container">
       <i class="fas fa-exclamation-circle"></i>
       <p>{{ errorMessage || 'اطلاعات تعمیر یافت نشد' }}</p>
       <button class="back-btn" @click="navigateTo('/admin/admin_counter')">
         بازگشت به لیست
       </button>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -95,6 +102,7 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const currentRepair = ref(null)
 const isVerifying = ref(false)
+const isLoading = ref(false);
 
 const route = useRoute();
 const { $api } = useNuxtApp();
@@ -108,6 +116,7 @@ onMounted(async () => {
   }
 
   try {
+    isLoading.value = true
     const response = await $api.get(`/device/by-code/${v_code}`);
     currentRepair.value = response.data;
     if (currentRepair.value.status === 'delivered') {
@@ -117,6 +126,11 @@ onMounted(async () => {
     console.error('Error loading repair data:', error);
     errorMessage.value = error.response?.data?.message || 'خطا در بارگذاری اطلاعات تعمیر';
   }
+  finally {
+    isLoading.value = false
+  }
+
+
 });
 
 // بررسی کد تأیید
@@ -162,6 +176,37 @@ const cancelDelivery = () => {
 </script>
 
 <style scoped>
+
+.loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
 .verification-page {
   min-height: 100vh;
   display: flex;

@@ -1,5 +1,13 @@
 <template>
   <div class="repairs-page">
+
+    <!-- لودینگ Overlay برای بارگذاری اولیه -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
+    </div>
+
+
     <!-- Desktop User Icon -->
     <div class="desktop-user-icon" @click="toggleSidebar" v-if="currentRepairman">
       <i class="fas fa-user-circle"></i>
@@ -255,6 +263,7 @@ const currentRepairman = ref(null)
 const router = useRouter()
 const { clearAuth } = useAuth()
 const isSidebarOpen = ref(false)
+const isLoading = ref(false);
 
 // Add new refs for modals
 const showPartsModal = ref(false)
@@ -284,6 +293,7 @@ onMounted(async () => {
   }
 
   try {
+    isLoading.value = true
     // دریافت لیست تعمیرات از API (آدرس باید با /api/ شروع شود)
     const { $axios } = useNuxtApp ? useNuxtApp() : { $axios: null };
     if ($axios) {
@@ -319,6 +329,12 @@ toastr.options = {
 }
     repairs.value = [];
   }
+
+  finally {
+    isLoading.value = false
+  }
+
+
 });
 
 // Add a watch to monitor repairs changes
@@ -617,6 +633,37 @@ const modalActions = computed(() => {
 </script>
 
 <style scoped>
+
+.loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
 .repairs-page {
   padding: 20px;
   position: relative;
