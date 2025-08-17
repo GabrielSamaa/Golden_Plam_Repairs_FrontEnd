@@ -46,6 +46,12 @@
               <span>مدیریت ادمین‌ها</span>
             </NuxtLink>
           </li>
+          <li>
+          <NuxtLink to="/admin/index_repairs_admin" class="nav-item" active-class="active" @click="closeMenu">
+            <i class="fas fa-users-cog"></i>
+            <span>پنل تعمیرات ادمین</span>
+          </NuxtLink>
+        </li>
         </ul>
       </nav>
     </div>
