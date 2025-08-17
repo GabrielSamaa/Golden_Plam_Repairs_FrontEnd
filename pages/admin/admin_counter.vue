@@ -191,7 +191,25 @@
     repairs.value = response.data.filter(device => device.status !== 'delivered');
   } catch (error) {
     console.error('Error loading repairs:', error);
-    alert('خطا در بارگذاری لیست دستگاه‌ها.');
+    Command: toastr["error"]("خطا در بارگذاری لیست دستگاه ها", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
  };
 
@@ -213,7 +231,25 @@
 
   } catch (error) {
     console.error('Error loading dashboard stats:', error);
-    alert('خطا در بارگذاری آمارهای داشبورد.');
+    Command: toastr["error"]("خطا در بارگذاری آمارهای داشبورد", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
  };
 
@@ -244,10 +280,46 @@
       if (index !== -1) {
         repairs.value[index].status = 'confirmed';
       }
-      alert('دستگاه برای تحویل تایید شد.');
+      Command: toastr["success"]("دستگاه برای تحویل تایید شد", "تایید تحویل")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     } catch (error) {
       console.error('Error confirming repair:', error);
-      alert('خطا در تایید دستگاه.');
+      Command: toastr["error"]("خطا در تایید دستگاه", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
  };
@@ -260,11 +332,47 @@
       await $api.post('/delivery/v_code', { 
         v_code: repair.verification_code
       });
-      alert('پیامک کد تایید برای مشتری ارسال شد.');
+      Command: toastr["info"]("پیامک کد تایید برای مشتری ارسال شد")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       goToVerification(repair);
     } catch (error) {
       console.error('Error sending verification code:', error);
-      alert('خطا در ارسال پیامک کد تایید.');
+      Command: toastr["error"]("خطا در ارسال پیامک کد تایید", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
  };
@@ -281,10 +389,46 @@
       if (index !== -1) {
         repairs.value[index].status = 'fixed';
       }
-      alert('وضعیت تایید لغو شد و به حالت تعمیر شده بازگشت.');
+      Command: toastr["info"]("وضعیت تایید لغو شد و به حالت تعمیر شده بازگشت", "هشدار")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     } catch (error) {
       console.error('Error cancelling confirmation:', error);
-      alert('خطا در لغو وضعیت تایید.');
+      Command: toastr["error"]("خطا در لغو وضعیت تایید", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
  };
@@ -295,10 +439,46 @@
       const { $api } = useNuxtApp();
       await $api.post(`/repairs/${repair.id}/archive`);
       repairs.value = repairs.value.filter(r => r.id !== repair.id);
-      alert('دستگاه با موفقیت به بایگانی منتقل شد.');
+      Command: toastr["success"]("دستگاه با موفقیت به بایگانی منتقل شد", "انتقال موفق")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     } catch (error) {
       console.error('Error moving to archive:', error);
-      alert('خطا در ارسال به بایگانی.');
+      Command: toastr["error"]("خطا در ارسال به بایگانی", "انتقال ناموفق")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
  };

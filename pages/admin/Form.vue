@@ -291,7 +291,25 @@ const submitForm = async () => {
   // نرمال‌سازی شماره تلفن قبل از ذخیره
   const normalizedPhone = form.value.phone.toString().trim().replace(/[^0-9]/g, '')
   if (!normalizedPhone.startsWith('09')) {
-    alert('شماره تلفن باید با ۰۹ شروع شود')
+    Command: toastr["warning"]("شماره تلفن باید با 09 شروع شود", "هشدار")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return
   }
 
@@ -391,13 +409,67 @@ const submitForm = async () => {
       });
       
       if (response.data && response.data.success) {
-        alert("فرم با موفقیت ثبت شد!")
+        Command: toastr["success"]("فرم پذیرش با موفقیت ثبت و پیامک به مشتری ارسال شد", "ثبت فرم")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       } else {
-        alert("خطا در ثبت اطلاعات: " + (response.data?.message || 'خطای نامشخص'))
+        Command: toastr["warning"]("مشکلی در ارسال پیامک به مشتری پیش آمده  است", "هشدار")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       }
     } catch (e) {
       console.error('خطا در ثبت اطلاعات دستگاه در دیتابیس:', e, e?.response?.data)
-      alert('خطا در ثبت اطلاعات دستگاه: ' + (e?.response?.data?.message || JSON.stringify(e?.response?.data) || e.message))
+      Command: toastr["error"]("فرم ثبت نشد", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
     // بررسی نهایی داده‌های ذخیره شده
     // const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
@@ -406,7 +478,7 @@ const submitForm = async () => {
     //   latest: savedReceptions[0]
     // })
     
-    alert("فرم با موفقیت ثبت شد!")
+    
     navigateTo('/admin/reception')
     // console.error('response')
   }

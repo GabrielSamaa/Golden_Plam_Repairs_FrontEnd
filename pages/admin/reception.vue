@@ -457,7 +457,25 @@ const submitEditReception = async () => {
     }))
     closeEditReceptionModal()
   } catch (e) {
-    alert('خطا در ویرایش پذیرش: ' + (e?.response?.data?.message || e.message))
+    Command: toastr["error"]("خطا در ویرایش پذیرش", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
 }
 
@@ -483,7 +501,25 @@ const deleteReception = async (id) => {
         deliveryDate: item.delivered_at || ''
       }))
     } catch (e) {
-      alert('خطا در حذف پذیرش: ' + (e?.response?.data?.message || e.message))
+      Command: toastr["error"]("خطا در حذف پذیرش", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 }

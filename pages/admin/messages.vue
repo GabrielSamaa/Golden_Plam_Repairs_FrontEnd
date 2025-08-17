@@ -159,7 +159,25 @@ const deleteMessage = async () => {
       showMessageModal.value = false
     } catch (err) {
       console.error('Error deleting message:', err)
-      alert('خطا در حذف پیام.')
+      Command: toastr["error"]("خطا در حذف پیام", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 }

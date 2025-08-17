@@ -34,7 +34,7 @@
                 <NuxtLink to="/contact" class="nav-link" active-class="active">ارتباط با ما</NuxtLink>
               </li>
               <li class="nav-item">
-                <NuxtLink to="/customer/login" class="nav-link" active-class="active">پیگیری درخواست تعمیر</NuxtLink>
+                <NuxtLink to="/customer/login" class="nav-link" active-class="active">پیگیری دستگاه تعمیری</NuxtLink>
               </li>
               <!-- دکمه ورود ادمین در حالت موبایل -->
               <!-- <li class="nav-item d-lg-none">

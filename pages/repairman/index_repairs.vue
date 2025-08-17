@@ -298,7 +298,25 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('خطا در دریافت لیست تعمیرات:', error, error?.response?.data);
-    alert('خطا در دریافت لیست تعمیرات از سرور: ' + (error?.response?.data?.message || error.message || 'خطای ناشناخته'));
+    Command: toastr["error"]("خطا در دریافت لیست تعمیرات از سرور ", "خطا در دریافت")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     repairs.value = [];
   }
 });
@@ -420,7 +438,25 @@ const startRepair = async () => {
         navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`);
       }
     } catch (error) {
-      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
+      Command: toastr["error"]("خطا در بروزرسانی وضعیت در سرور ", "خطا در بروزرسانی")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 }
@@ -434,30 +470,39 @@ const continueRepair = () => {
 
 const completeRepair = async () => {
   if (selectedRepair.value) {
-    // Check if parts are saved
-    const savedParts = localStorage.getItem(`repair_parts_${selectedRepair.value.id}`);
-    if (!savedParts) {
-      alert('لطفاً ابتدا قطعات تعمیر را ثبت کنید');
-      return;
-    }
-
     try {
-      const { $axios } = useNuxtApp ? useNuxtApp() : { $axios: null };
-      if ($axios) {
-        await $axios.patch(`/device/repair/${selectedRepair.value.id}`, {
-          status: 'fixed'
-        });
-
-        // Update status locally after successful API call
-        selectedRepair.value.status = 'fixed';
-        const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id);
-        if (index !== -1) {
-          repairs.value[index].status = 'fixed';
-        }
-        closeModal();
+      const { $axios } = useNuxtApp();
+      
+      // بررسی وجود قطعات در دیتابیس
+      const repairResponse = await $axios.get(`/device/repair/${selectedRepair.value.id}`);
+      const repairDetails = repairResponse.data.repair_details;
+      
+      // اگر قطعات وجود نداشت یا آرایه خالی بود
+      if (!repairDetails || (Array.isArray(repairDetails) && repairDetails.length === 0)) {
+        alert('لطفا ابتدا قطعات تعمیر را ثبت کنید');
+        // هدایت به صفحه ثبت قطعات
+        navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`);
+        return;
       }
+
+      // آپدیت وضعیت به تعمیر شده
+      await $axios.patch(`/device/repair/${selectedRepair.value.id}`, {
+        status: 'fixed'
+      });
+
+      // بروزرسانی وضعیت در فرانت
+      selectedRepair.value.status = 'fixed';
+      const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id);
+      if (index !== -1) {
+        repairs.value[index].status = 'fixed';
+      }
+      
+      alert('وضعیت دستگاه با موفقیت به تعمیر شده تغییر کرد');
+      closeModal();
+      
     } catch (error) {
-      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
+      console.error('خطا در تکمیل تعمیر:', error);
+      alert('خطا در بروزرسانی وضعیت: ' + (error.response?.data?.message || error.message));
     }
   }
 };

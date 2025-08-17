@@ -341,7 +341,26 @@
   const submitEditPart = async () => {
     const { id, description, price, category_id } = editPartData.value
     if (!id) {
-      alert('شناسه قطعه نامعتبر است')
+      Command: toastr["warning"]("شناسه قطعه نامعتبر است", "هشدار")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
+
       return
     }
     try {
@@ -351,11 +370,47 @@
         price: Number(price),
         category_id: Number(category_id)
       })
-      alert('قطعه با موفقیت ویرایش شد')
+      Command: toastr["success"]("قطعه با موفقیت ویرایش شد", "ویرایش موفق")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       closeEditModal()
       await fetchPartsFromDB(route.query.id)
     } catch (error) {
-      alert('خطا در ویرایش قطعه: ' + (error?.response?.data?.message || error.message))
+      Command: toastr["error"]("خطا در ویرایش قطعه", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
   const deletePartFromDB = async (index) => {
@@ -390,11 +445,47 @@
 
     // بروزرسانی لیست محلی
     parts.value = parts.value.filter((_, i) => i !== index)
-    alert('قطعه با موفقیت حذف شد')
+    Command: toastr["success"]("قطعه با موفقیت حذف شد", "حذف موفق")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     
   } catch (error) {
     console.error('خطا در حذف قطعه:', error)
-    alert('خطا در حذف قطعه: ' + (error.response?.data?.message || error.message))
+    Command: toastr["error"]("خطا در حذف قطعه", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
 }
 
@@ -461,10 +552,46 @@ const removeReplacedPart = async (partId, index) => {
     
     // بارگذاری مجدد لیست
     await fetchReplacedParts(repairId)
-    alert('قطعه با موفقیت از تاریخچه حذف شد')
+    Command: toastr["success"]("قطعه با موفقیت از تاریخچه حذف شد", "حذف موفق")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   } catch (error) {
     console.error('خطا در حذف قطعه:', error)
-    alert('خطا در حذف قطعه: ' + (error.response?.data?.message || error.message))
+    Command: toastr["error"]("خطا در حذف قطعه", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
 }
   
@@ -473,7 +600,25 @@ const submitParts = async () => {
   // اعتبارسنجی
   const hasEmptyFields = parts.value.some(part => !part.name.trim() || !part.price)
   if (hasEmptyFields) {
-    alert('لطفاً اطلاعات تمام قطعات را تکمیل کنید')
+    Command: toastr["warning"]("لطفا اطلاعات تمام قطعات را تکمیل کنید", "هشدار")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return
   }
 
@@ -484,7 +629,25 @@ const submitParts = async () => {
 
   const repairId = route.query.id
   if (!repairId) {
-    alert('شناسه تعمیر یافت نشد')
+    Command: toastr["warning"]("شناسه تعمیر یافت نشد", "هشدار")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return
   }
 
@@ -503,12 +666,48 @@ const submitParts = async () => {
       repair_details: newReplacedParts
     })
 
-    alert('اطلاعات قطعات با موفقیت ذخیره شدند')
+    Command: toastr["success"]("اطلاعات قطعات با موفقیت ذخیره شدند", "ثبت موفق")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     await fetchPartsFromDB(repairId)
     router.push('/repairman/index_repairs')
   } catch (error) {
     console.error('خطا در ذخیره اطلاعات:', error?.response?.data)
-    alert('خطا در ارتباط با سرور: ' + (error?.response?.data?.message || error.message))
+    Command: toastr["error"]("خطا در ارتباط با سرور", "خطا")
+
+toastr.options = {
+  "closeButton": true,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return
   }
 }

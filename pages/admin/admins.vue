@@ -212,7 +212,25 @@ const closeRepairmanForm = () => {
 const submitRepairmanForm = async () => {
   // Basic validation
   if (!repairmanForm.value.phone || !repairmanForm.value.fullName) {
-    alert('لطفاً تمام فیلدهای اجباری را پر کنید.');
+    Command: toastr["warning"]("لطفا تمام فیلد های اجباری را پر کنید", "فیلد خالی است")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return;
   }
 
@@ -223,7 +241,25 @@ const submitRepairmanForm = async () => {
       const index = repairmen.value.findIndex(r => r.id === repairmanForm.value.id);
       if (index !== -1) {
         repairmen.value[index] = { ...repairmanForm.value };
-        alert('اطلاعات تعمیرکار با موفقیت ویرایش شد.');
+        Command: toastr["success"]("اطلاعات تعمیرکار با موفقیت ویرایش شد", "ویرایش موفق")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       }
     } else {
       // Logic for adding a new repairman
@@ -241,7 +277,25 @@ const submitRepairmanForm = async () => {
       
       // Add the new repairman from the response to the local list
       repairmen.value.push(response.data);
-      alert('تعمیرکار جدید با موفقیت اضافه شد.');
+      Command: toastr["success"]("تعمیر کار جدید با موفقیت اضافه شد", "تعمیرکار اضافه شد")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
 
     // Save to localStorage (optional, but good for persistence)
@@ -250,7 +304,25 @@ const submitRepairmanForm = async () => {
 
   } catch (error) {
     console.error('Error submitting repairman form:', error);
-    alert('خطا در ثبت اطلاعات. لطفاً دوباره تلاش کنید.');
+    Command: toastr["error"]("خطا در ثبت اطلاعات ; لطفا دوباره تلاش کنید", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "3000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
   }
 }
 
