@@ -1,5 +1,12 @@
 <template>
   <div class="repairs-page">
+    <!-- Loading Spinner -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">در حال بارگذاری...</span>
+      </div>
+    </div>
+
     <div class="page-header">
       <h2>تعمیرات من</h2>
       <div class="filters">
@@ -38,14 +45,14 @@
             <i class="fas fa-mobile-alt"></i>
             <span>{{ repair.deviceType }}</span>
           </div>
-          <div class="info-row">
+          <!-- <div class="info-row">
             <i class="fas fa-tag"></i>
             <span>{{ repair.category }}</span>
-          </div>
-          <div class="info-row">
+          </div> -->
+          <!-- <div class="info-row">
             <i class="fas fa-money-bill-wave"></i>
             <span>{{ repair.statement.toLocaleString() }} تومان</span>
-          </div>
+          </div> -->
         </div>
         <div class="card-footer">
           <div class="date-info">
@@ -137,6 +144,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useNuxtApp } from '#app'
 
 const router = useRouter()
 const route = useRoute()
@@ -145,33 +153,54 @@ const searchQuery = ref('')
 const statusFilter = ref('all')
 const showModal = ref(false)
 const selectedRepair = ref(null)
+const isLoading = ref(true)
 
-// Load repairs from localStorage
-onMounted(() => {
+// Load repairs from API
+onMounted(async () => {
   const customerPhone = route.query.phone
   if (!customerPhone) {
     router.push('/customer/login')
     return
   }
 
-  const savedRepairs = JSON.parse(localStorage.getItem('receptions') || '[]')
-  repairs.value = savedRepairs.filter(repair => {
-    const storedPhone = repair.phone.toString().trim()
-    const normalizedStored = storedPhone.replace(/^09/, '')
-    const normalizedInput = customerPhone.replace(/^09/, '')
-    return normalizedStored === normalizedInput
-  })
+  try {
+    const { $axios } = useNuxtApp()
+    const response = await $axios.get(`/user-device?phone=${customerPhone}`)
+    
+    // تبدیل داده‌های API به فرمت مورد نیاز
+    repairs.value = response.data.map(repair => ({
+      id: repair.id,
+      trackingNumber: repair.verification_code,
+      customerName: repair.customer?.name,
+      phone: repair.customer?.phone,
+      deviceType: repair.device_name,
+      category: repair.device_category,
+      status: repair.status,
+      statement: repair.total_cost || 0,
+      issue: repair.description,
+      date: repair.created_at,
+      deliveryDate: repair.delivery_date,
+      readyForDelivery: repair.status === 'confirmed',
+      repair_details: repair.repair_details
+    }))
 
-  if (repairs.value.length === 0) {
+  } catch (error) {
+    console.error('Error fetching repairs:', error)
+    alert('خطا در دریافت اطلاعات تعمیرات')
     router.push('/customer/login')
+  } finally {
+    isLoading.value = false
   }
 })
 
+// اضافه کردن loading spinner به template
 const filteredRepairs = computed(() => {
+  if (isLoading.value) return []
+  
   return repairs.value.filter(repair => {
     const matchesSearch = 
-      repair.trackingNumber.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      repair.deviceType.toLowerCase().includes(searchQuery.value.toLowerCase())
+      repair.trackingNumber?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      repair.deviceType?.toLowerCase().includes(searchQuery.value.toLowerCase())
     
     const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
     
@@ -182,16 +211,18 @@ const filteredRepairs = computed(() => {
     if (statusOrder[a.status] !== statusOrder[b.status]) {
       return statusOrder[a.status] - statusOrder[b.status]
     }
-    return (b.date || '').localeCompare(a.date || '')
+    return new Date(b.date || '') - new Date(a.date || '')
   })
 })
 
+// بروزرسانی status mapping
 const getStatusText = (status) => {
   const statusMap = {
     'pending': 'در انتظار بررسی',
-    'in-progress': 'در حال انجام',
-    'completed': 'تکمیل شده',
-    'ready-for-delivery': 'آماده تحویل'
+    'in_progress': 'در حال تعمیر',
+    'fixed': 'تعمیر شده',
+    'confirmed': 'آماده تحویل',
+    'delivered': 'تحویل داده شده'
   }
   return statusMap[status] || status
 }
@@ -206,10 +237,14 @@ const closeModal = () => {
   selectedRepair.value = null
 }
 
-const viewFullDetails = () => {
-  if (selectedRepair.value) {
-    router.push(`/Follow_up?tracking=${selectedRepair.value.trackingNumber}`)
+const viewFullDetails = (repair) => {
+  const trackingNumber = repair.verification_code || repair.trackingNumber
+  console.log('Viewing details for tracking:', trackingNumber) // برای دیباگ
+  if (!trackingNumber) {
+    alert('شماره پیگیری نامعتبر است')
+    return
   }
+  router.push(`/Follow_up?tracking=${trackingNumber}`)
 }
 </script>
 
@@ -444,6 +479,19 @@ const viewFullDetails = () => {
   transform: translateY(-2px);
 }
 
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
 @media (max-width: 768px) {
   .filters {
     flex-direction: column;
@@ -466,4 +514,4 @@ const viewFullDetails = () => {
     grid-template-columns: 1fr;
   }
 }
-</style> 
+</style>

@@ -207,25 +207,7 @@
   // بارگذاری اطلاعات از localStorage
   onMounted(() => {
     if (!trackingId.value) {
-      Command: toastr["warning"]("شماره پیگیری نامعتبر است", "هشدار")
-
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "newestOnTop": false,
-  "progressBar": false,
-  "positionClass": "toast-top-center",
-  "preventDuplicates": false,
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "3000",
-  "extendedTimeOut": "1000",
-  "showEasing": "swing",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
-}
+      alert('شماره پیگیری نامعتبر است')
       router.push('/customer/login')
       return
     }
@@ -270,25 +252,7 @@ toastr.options = {
         }
       }
     } else {
-     Command: toastr["warning"]("اطلاعاتی با این شماره پیگیری یافت نشد", "هشدار")
-
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "newestOnTop": false,
-  "progressBar": false,
-  "positionClass": "toast-top-center",
-  "preventDuplicates": false,
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "3000",
-  "extendedTimeOut": "1000",
-  "showEasing": "swing",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
-}
+      alert('اطلاعاتی با این شماره پیگیری یافت نشد')
       router.push('/customer/login')
     }
   })
