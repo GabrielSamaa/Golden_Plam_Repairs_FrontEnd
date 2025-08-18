@@ -221,7 +221,25 @@ const contactSupport = () => {
 onMounted(async () => {
   const trackingNumber = route.query.tracking
   if (!trackingNumber) {
-    alert('شماره پیگیری نامعتبر است')
+    Command: toastr["error"]("شماره پیگیری نامعتعبر است", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     router.push('/customer/login')
     return
   }
@@ -248,12 +266,48 @@ onMounted(async () => {
 
       updateStatuses()
     } else {
-      alert('اطلاعاتی با این شماره پیگیری یافت نشد')
+      Command: toastr["warning"]("اطلاعاتی با این شماره پیگیری یافت نشد", "وجود ندارد")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       router.push('/customer/login')
     }
   } catch (error) {
     console.error('Error fetching repair details:', error)
-    alert('خطا در دریافت اطلاعات تعمیر')
+    Command: toastr["error"]("خطا در دریافت اطلاعات تعمیر", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     router.push('/customer/login')
   } finally {
     load.value = false

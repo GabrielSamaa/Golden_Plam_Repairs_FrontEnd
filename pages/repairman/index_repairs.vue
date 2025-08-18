@@ -495,7 +495,25 @@ const completeRepair = async () => {
       
       // اگر قطعات وجود نداشت یا آرایه خالی بود
       if (!repairDetails || (Array.isArray(repairDetails) && repairDetails.length === 0)) {
-        alert('لطفا ابتدا قطعات تعمیر را ثبت کنید');
+        Command: toastr["warning"]("لطفا ابتدا قطعات تعمیر را ثبت کنید", "هشدار ")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
         // هدایت به صفحه ثبت قطعات
         navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`);
         return;
@@ -513,12 +531,48 @@ const completeRepair = async () => {
         repairs.value[index].status = 'fixed';
       }
       
-      alert('وضعیت دستگاه با موفقیت به تعمیر شده تغییر کرد');
+      Command: toastr["success"]("وضعیت دستگاه با موفقیت به تعمیر شده تغییر کرد", "موفق")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       closeModal();
       
     } catch (error) {
       console.error('خطا در تکمیل تعمیر:', error);
-      alert('خطا در بروزرسانی وضعیت: ' + (error.response?.data?.message || error.message));
+      Command: toastr["error"]("خطا در بروزرسانی وضعیت", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 };

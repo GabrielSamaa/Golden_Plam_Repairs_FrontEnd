@@ -179,7 +179,25 @@ onMounted(async () => {
 
   } catch (error) {
     console.error('Error fetching repairs:', error)
-    alert('خطا در دریافت اطلاعات تعمیرات')
+    Command: toastr["error"]("خطا در دریافت اطلاعات تعمیرات", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     router.push('/customer/login')
   } finally {
     isLoading.value = false
@@ -233,12 +251,48 @@ const closeModal = () => {
 // اصلاح تابع viewFullDetails
 const viewFullDetails = (repair) => {
   if (!repair) {
-    alert('اطلاعات تعمیر نامعتبر است');
+    Command: toastr["error"]("اطلاعات تعمیر نامعتبر است", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return;
   }
   const trackingNumber = repair.trackingNumber;
   if (!trackingNumber) {
-    alert('شماره پیگیری نامعتبر است');
+    Command: toastr["error"]("شماره پیگیری  نامعتبر است", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     return;
   }
 

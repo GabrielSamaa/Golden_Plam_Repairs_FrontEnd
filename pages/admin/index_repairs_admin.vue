@@ -267,7 +267,25 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('خطا در دریافت لیست تعمیرات:', error, error?.response?.data);
-    alert('خطا در دریافت لیست تعمیرات از سرور: ' + (error?.response?.data?.message || error.message || 'خطای ناشناخته'));
+    Command: toastr["error"]("خطا در دریافت  لیست تعمیرات از سرور", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     repairs.value = [];
   }
   finally {
@@ -393,7 +411,25 @@ const startRepair = async () => {
         navigateTo(`/admin/start_repairs_admin?id=${selectedRepair.value.id}`);
       }
     } catch (error) {
-      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
+      Command: toastr["error"]("خطا در بروزرسانی وضعیت در سرور ", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 }
@@ -410,7 +446,25 @@ const completeRepair = async () => {
     // Check if parts are saved
     const savedParts = localStorage.getItem(`repair_parts_${selectedRepair.value.id}`);
     if (!savedParts) {
-      alert('لطفاً ابتدا قطعات تعمیر را ثبت کنید');
+      Command: toastr["warning"]("لطفا ابتدا قطعات تعمیر را ثبت کنید", "هشدار")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
       return;
     }
 
@@ -430,7 +484,25 @@ const completeRepair = async () => {
         closeModal();
       }
     } catch (error) {
-      alert('خطا در بروزرسانی وضعیت در سرور: ' + (error?.response?.data?.message || error.message));
+      Command: toastr["error"]("خطا در بروزرسانی وضعیت در سرور", "خطا")
+
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": false,
+  "positionClass": "toast-top-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "5000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+}
     }
   }
 };
