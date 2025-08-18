@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <div class="sidebar" :class="{ 'show': isMobileMenuOpen }">
       <div class="sidebar-header">
-        <img src="/assets/images/2.png" alt="Logo" class="logo">
+        <img src="/assets/images/2.webp" alt="Logo" class="logo">
         <button class="close-btn d-lg-none" @click="toggleSidebar">
           <i class="fas fa-times"></i>
         </button>
@@ -76,14 +76,14 @@
             <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
           </NuxtLink>
           <div class="user-info" @click="toggleUserMenu">
-            <img src="/assets/images/2.png" alt="User" class="user-avatar">
+            <img src="/assets/images/2.webp" alt="User" class="user-avatar">
             <span class="user-name">{{ currentUser?.name || 'مدیر سیستم' }}</span>
             <i class="fas fa-chevron-down" :class="{ 'rotate': isUserMenuOpen }"></i>
           </div>
           <!-- منوی کاربر -->
           <div class="user-dropdown" v-if="isUserMenuOpen" v-click-outside="closeUserMenu">
             <div class="user-dropdown-header">
-              <img src="/assets/images/2.png" alt="User" class="user-dropdown-avatar">
+              <img src="/assets/images/2.webp" alt="User" class="user-dropdown-avatar">
               <div class="user-dropdown-info">
                 <span class="user-dropdown-name">{{ currentUser?.name || 'مدیر سیستم' }}</span>
                 <span class="user-dropdown-role">{{ currentUser?.role === 'admin' ? 'مدیر سیستم' : 'کاربر' }}</span>
