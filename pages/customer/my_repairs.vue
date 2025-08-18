@@ -2,9 +2,8 @@
   <div class="repairs-page">
     <!-- Loading Spinner -->
     <div v-if="isLoading" class="loading-overlay">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">در حال بارگذاری...</span>
-      </div>
+      <div class="spinner"></div>
+      <p class="loading-text">در حال بارگذاری اطلاعات...</p>
     </div>
 
     <div class="page-header">
@@ -122,15 +121,10 @@
               </div>
             </div>
           </div>
-
-          <div class="detail-section">
-            <h4>توضیحات</h4>
-            <p class="description">{{ selectedRepair.issue }}</p>
-          </div>
-
           <!-- دکمه مشاهده جزئیات کامل -->
+          <!-- تغییر در دکمه مشاهده جزئیات کامل -->
           <div class="detail-actions">
-            <button class="btn btn-primary" @click="viewFullDetails">
+            <button class="btn btn-primary" @click="viewFullDetails(selectedRepair)">
               <i class="fas fa-external-link-alt me-2"></i>
               مشاهده جزئیات کامل
             </button>
@@ -165,20 +159,19 @@ onMounted(async () => {
 
   try {
     const { $axios } = useNuxtApp()
-    const response = await $axios.get(`/user-device?phone=${customerPhone}`)
-    
+    const response = await $axios.get(`/user-device`)
+    console.log(response)
     // تبدیل داده‌های API به فرمت مورد نیاز
     repairs.value = response.data.map(repair => ({
       id: repair.id,
       trackingNumber: repair.verification_code,
       customerName: repair.customer?.name,
-      phone: repair.customer?.phone,
+      phone: repair.customer?.mobile,
       deviceType: repair.device_name,
-      category: repair.device_category,
+      category: repair.category.name,
       status: repair.status,
-      statement: repair.total_cost || 0,
-      issue: repair.description,
-      date: repair.created_at,
+      statement: Math.round(repair.prepaid) || 0,
+      date: repair.created_at.substring(0, 10),
       deliveryDate: repair.delivery_date,
       readyForDelivery: repair.status === 'confirmed',
       repair_details: repair.repair_details
@@ -237,14 +230,19 @@ const closeModal = () => {
   selectedRepair.value = null
 }
 
+// اصلاح تابع viewFullDetails
 const viewFullDetails = (repair) => {
-  const trackingNumber = repair.verification_code || repair.trackingNumber
-  console.log('Viewing details for tracking:', trackingNumber) // برای دیباگ
-  if (!trackingNumber) {
-    alert('شماره پیگیری نامعتبر است')
-    return
+  if (!repair) {
+    alert('اطلاعات تعمیر نامعتبر است');
+    return;
   }
-  router.push(`/Follow_up?tracking=${trackingNumber}`)
+  const trackingNumber = repair.trackingNumber;
+  if (!trackingNumber) {
+    alert('شماره پیگیری نامعتبر است');
+    return;
+  }
+
+  router.push(`/Follow_up?tracking=${trackingNumber}`);
 }
 </script>
 
@@ -481,15 +479,31 @@ const viewFullDetails = (repair) => {
 
 .loading-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 2000;
+}
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: #fff;
+  font-size: 1.2rem;
+  margin-top: 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {

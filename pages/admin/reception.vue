@@ -32,13 +32,13 @@
             <option value="completed">تکمیل شده</option>
           </select>
         </div>
-        <div class="col-md-3">
+        <!-- <div class="col-md-3"> 
           <label>از تاریخ:</label>
           <PersianDatePicker
             v-model="receptionFromDate"
             placeholder="تاریخ را انتخاب کنید"
           />
-        </div>
+        </div>-->
         <div class="col-md-3">
           <button class="btn btn-primary" @click="applyReceptionFilters">جستجو</button>
         </div>
