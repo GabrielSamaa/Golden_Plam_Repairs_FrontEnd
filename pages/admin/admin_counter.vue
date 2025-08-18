@@ -61,7 +61,7 @@
             placeholder="جستجو در شماره پیگیری، مشتری، دستگاه، شماره تماس..."
           >
         </div>
-        <div class="filter-actions">
+        <!-- <div class="filter-actions">
           <select class="form-select" v-model="sortBy">
             <option value="date">مرتب‌سازی بر اساس تاریخ</option>
             <option value="amount">مرتب‌سازی بر اساس مبلغ</option>
@@ -70,7 +70,7 @@
             <i class="fas fa-times"></i>
             پاک کردن جستجو
           </button>
-        </div>
+        </div> -->
       </div>
       <div class="table-responsive">
         <table class="table">

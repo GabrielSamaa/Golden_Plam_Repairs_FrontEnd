@@ -18,14 +18,14 @@
           <label>جستجو:</label>
           <input type="text" class="form-control" placeholder="شماره پیگیری یا نام مشتری" v-model="archiveSearch">
         </div>
-        <div class="col-md-3">
+        <!-- <div class="col-md-3">
           <label>وضعیت:</label>
           <select class="form-control" v-model="archiveStatus">
             <option value="all">همه</option>
             <option value="completed">تکمیل شده</option>
             <option value="cancelled">لغو شده</option>
           </select>
-        </div>
+        </div> -->
         <div class="col-md-3">
           <label>از تاریخ:</label>
           <PersianDatePicker

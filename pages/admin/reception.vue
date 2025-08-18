@@ -27,9 +27,11 @@
           <label>وضعیت:</label>
           <select class="form-control" v-model="receptionStatus">
             <option value="all">همه</option>
-            <option value="pending">در انتظار بررسی</option>
-            <option value="in-progress">در حال انجام</option>
-            <option value="completed">تکمیل شده</option>
+            <option value="received">پذیرش شده</option>
+            <option value="in_progress">در حال تعمیر</option>
+            <option value="fixed">تعمیر شده</option>
+            <option value="confirmed">آماده تحویل</option>
+            <option value="delivered">تحویل داده شده</option>
           </select>
         </div>
         <!-- <div class="col-md-3"> 
@@ -69,7 +71,7 @@
             <td>{{ item.customerName }}</td>
             <td>{{ item.phone }}</td>
             <td>{{ item.deviceType }}</td>
-            <td>{{ item.category }}</td>
+            <td>{{ item.categoryName }}</td>
             <td>{{ item.issue }}</td>
             <td>{{ item.appearanceDetails || '-' }}</td>
             <td>{{ item.statement ? Number(item.statement).toLocaleString() : '۰' }}</td>
@@ -165,7 +167,7 @@
               </div>
               <div class="detail-item">
                 <label>دسته‌بندی:</label>
-                <span>{{ selectedReception.category }}</span>
+                <span>{{ selectedReception.categoryName }}</span>
               </div>
               <div class="detail-item">
                 <label>بیانه:</label>
@@ -316,6 +318,7 @@ onMounted(async () => {
       status: item.status || '',
       phone: item.mobile || item.phone || item.customer?.mobile || item.customer?.phone || '',
       category: item.device_category_id || '',
+      categoryName: item.device_category?.name || item.category_name || '', // اضافه شد
       statement: item.prepaid || 0,
       repairmanId: item.technician_id || '',
       receptionDate: item.received_at || '',
@@ -365,31 +368,36 @@ onMounted(async () => {
 })
 
 const filteredReceptions = computed(() => {
-  let result = receptions.value.filter(r => r.status !== 'completed')
-  
+  let result = receptions.value
+
+  // فیلتر وضعیت
   if (receptionStatus.value !== 'all') {
-    result = result.filter(r => r.status === receptionStatus.value)
+    result = result.filter(r => String(r.status).toLowerCase() === String(receptionStatus.value).toLowerCase())
   }
+
+  // جستجو
   if (receptionSearch.value) {
-    const search = receptionSearch.value.toLowerCase()
-    result = result.filter(r => 
-      r.trackingNumber.toLowerCase().includes(search) || 
-      r.customerName.toLowerCase().includes(search) ||
-      r.phone.toLowerCase().includes(search) ||
-      r.deviceType.toLowerCase().includes(search) ||
-      r.category.toLowerCase().includes(search) ||
-      r.issue.toLowerCase().includes(search)
+    const search = receptionSearch.value.toString().toLowerCase()
+    result = result.filter(r =>
+      (r.trackingNumber || '').toString().toLowerCase().includes(search) ||
+      (r.customerName || '').toString().toLowerCase().includes(search) ||
+      (r.phone || '').toString().toLowerCase().includes(search) ||
+      (r.deviceType || '').toString().toLowerCase().includes(search) ||
+      (r.categoryName || '').toString().toLowerCase().includes(search) ||
+      (r.issue || '').toString().toLowerCase().includes(search)
     )
   }
+
   return result
 })
 
 const getStatusText = (status) => {
   const statusMap = {
     'pending': 'در انتظار بررسی',
-    'in-progress': 'در حال انجام',
-    'completed': 'تکمیل شده',
-    'delivered': 'تکمیل شده'
+    'in_progress': 'در حال تعمیر',
+    'fixed': 'تعمیر شده',
+    'confirmed': 'آماده تحویل',
+    'delivered': 'تحویل داده شده'
   }
   return statusMap[status] || status
 }
@@ -466,6 +474,7 @@ const submitEditReception = async () => {
       status: item.status || '',
       phone: item.mobile || item.phone || item.customer?.mobile || item.customer?.phone || '',
       category: item.device_category_id || '',
+      categoryName: item.device_category?.name || item.category_name || '', // اضافه شد
       statement: item.prepaid || 0,
       repairmanId: item.technician_id || '',
       receptionDate: item.received_at || '',
