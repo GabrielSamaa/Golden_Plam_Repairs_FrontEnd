@@ -139,10 +139,10 @@ const isSelected = (date) => {
 }
 
 const isDisabled = (date) => {
-  if (!date) return true
-  const today = moment().startOf('day')
-  const selectedDate = moment(date, 'jYYYY/jMM/jDD')
-  return selectedDate.isBefore(today)
+  // if (!date) return true
+  // const today = moment().startOf('day')
+  // const selectedDate = moment(date, 'jYYYY/jMM/jDD')
+  // return selectedDate.isBefore(today)
 }
 
 const selectDate = (date, event) => {

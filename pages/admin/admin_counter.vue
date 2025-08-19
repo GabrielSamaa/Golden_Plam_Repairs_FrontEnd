@@ -293,7 +293,7 @@ toastr.options = {
       if (index !== -1) {
         repairs.value[index].status = 'confirmed';
       }
-      Command: toastr["success"]("دستگاه برای تحویل تایید شد", "تایید تحویل")
+      Command: toastr["success"]("دستگاه برای تحویل تایید و پیامک ارسال شد", "تایید تحویل")
 
 toastr.options = {
   "closeButton": false,
@@ -402,7 +402,7 @@ toastr.options = {
       if (index !== -1) {
         repairs.value[index].status = 'fixed';
       }
-      Command: toastr["info"]("وضعیت تایید لغو شد و به حالت تعمیر شده بازگشت", "هشدار")
+      Command: toastr["warning"]("وضعیت تایید لغو شد و به حالت تعمیر شده بازگشت", "هشدار")
 
 toastr.options = {
   "closeButton": false,

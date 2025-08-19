@@ -38,7 +38,7 @@
             </li>
             <li>
               <i class="fas fa-envelope"></i>
-              <span>ایمیل:</span>
+              <span>ایمیل: nakhltalaei@gmail.com</span>
             </li>
           </ul>
         </div>
