@@ -31,7 +31,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      apiBase: 'https://api-nakhltalaei.ir/api'
+      apiBase: 'http://localhost:8000/api'
     }
   },
   modules: ['@nuxt/image']

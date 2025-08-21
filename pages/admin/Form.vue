@@ -137,7 +137,9 @@
               پاک کردن فرم
             </button>
             <button type="submit" class="btn btn-primary">
-              <i class="fas fa-save"></i>
+              <span v-if="isSendingCode">
+              <i class="fas fa-spinner fa-spin"></i>
+              </span>
               ثبت اطلاعات
             </button>
           </div>
@@ -153,6 +155,7 @@ import moment from 'moment-jalaali'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
 import { useRouter } from 'nuxt/app'
 import { useNuxtApp } from '#app'
+const isSendingCode = ref(false)
 const { $axios } = useNuxtApp()
 
 const router = useRouter()
@@ -375,6 +378,7 @@ toastr.options = {
     // localStorage.setItem('receptions', JSON.stringify(receptions))
     
     // ثبت اطلاعات دستگاه در دیتابیس
+    isSendingCode.value = true
     try {
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       
@@ -470,6 +474,7 @@ toastr.options = {
   "showMethod": "fadeIn",
   "hideMethod": "fadeOut"
 }
+isSendingCode.value = false
     }
     // بررسی نهایی داده‌های ذخیره شده
     // const savedReceptions = JSON.parse(localStorage.getItem('receptions') || '[]')
