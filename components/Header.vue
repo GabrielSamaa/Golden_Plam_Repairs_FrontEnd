@@ -50,10 +50,38 @@
         </div>
       </nav>
     </header>
+
+    <!-- اضافه کردن نشانگر وضعیت مغازه -->
+    <div class="shop-status" :class="{ 'open': isOpen }">
+      <i class="fas" :class="isOpen ? 'fa-door-open' : 'fa-door-closed'"></i>
+      <span>{{ shopStatus }}</span>
+    </div>
   </template>
   
   <script setup>
-  // نیازی به import نیست (Nuxt 3 به صورت خودکار مدیریت می‌کند)
+  import { ref, onMounted } from 'vue'
+  import { useNuxtApp } from '#app'
+  
+  const { $api } = useNuxtApp()
+  const shopStatus = ref('در حال بررسی...')
+  const isOpen = ref(false)
+  
+  async function checkShopStatus() {
+    try {
+      const res = await $api.get('/status')
+      isOpen.value = res.data.status
+      shopStatus.value = isOpen.value ? "مغازه باز است" : "مغازه بسته است"
+    } catch (e) {
+      console.error('Error checking shop status:', e)
+      shopStatus.value = "خطا در دریافت وضعیت"
+    }
+  }
+  
+  // چک کردن وضعیت هر 5 دقیقه
+  onMounted(() => {
+    checkShopStatus()
+    setInterval(checkShopStatus, 300000) // 5 minutes
+  })
   </script>
   
   <style scoped>
@@ -98,7 +126,33 @@
     font-size: 1.1rem;
     font-weight: 500;
   }
-  
+
+  .shop-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 0px;
+    background: #ff4444;
+    color: white;
+    transition: all 0.3s ease;
+  }
+
+  .shop-status.open {
+    background: #00C851;
+  }
+
+  .shop-status i {
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 768px) {
+    .shop-status {
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+  }
+
   @media (max-width: 991.98px) {
     .navbar-collapse {
       padding: 1rem 0;

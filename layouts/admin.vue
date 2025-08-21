@@ -4,6 +4,17 @@
     <div class="sidebar" :class="{ 'show': isMobileMenuOpen }">
       <div class="sidebar-header">
         <img src="/assets/images/2.webp" alt="Logo" class="logo">
+        <div class="form-check form-switch">
+          <input 
+            class="form-check-input" 
+            type="checkbox" 
+            role="switch" 
+            :checked="status === 'مغازه باز است'"
+            @click="state"
+          >
+          <label class="form-check-label">{{ status }}</label>
+        </div>
+
         <button class="close-btn d-lg-none" @click="toggleSidebar">
           <i class="fas fa-times"></i>
         </button>
@@ -110,18 +121,43 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import {useNuxtApp} from "#app";
 
 // حذف middleware از اینجا چون از middleware سراسری استفاده می‌کنیم
 definePageMeta({
   layout: 'admin'
 })
 
+const status = ref('در حال بارگیری...')
 const router = useRouter()
 const route = useRoute()
 const isMobileMenuOpen = ref(false)
 const isUserMenuOpen = ref(false)
 const unreadCount = ref(0)
 const currentUser = ref(null)
+
+const { $api } = useNuxtApp()
+
+async function cheng() {
+  try {
+    const res = await $api.get('/status')
+    status.value = res.data.status ? "مغازه باز است" : "مغازه بسته است"
+  } catch (e) {
+    console.error('Error fetching status:', e)
+    status.value = "خطا در دریافت وضعیت"
+  }
+}
+
+async function state() {
+  try {
+    const newStatus = status.value === "مغازه باز است" ? false : true
+    await $api.put('/status', { status: newStatus })
+    await cheng()
+  } catch (e) {
+    console.error('Error updating status:', e)
+    toastr.error('خطا در تغییر وضعیت مغازه')
+  }
+}
 
 // اضافه کردن watch برای تغییر مسیر
 watch(() => route.path, (newPath) => {
@@ -217,6 +253,7 @@ const updateUserInfo = () => {
 
 // به‌روزرسانی تعداد پیام‌ها در زمان لود صفحه
 onMounted(() => {
+  cheng()
   updateUnreadCount()
   updateUserInfo()
   window.addEventListener('storage', () => {
@@ -644,4 +681,4 @@ onUnmounted(() => {
     font-size: 1.2rem;
   }
 }
-</style> 
+</style>
