@@ -109,6 +109,8 @@ import { ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNuxtApp } from '#app'
 import { useAuth } from '~/composables/useAuth'
+import toastr from 'toastr'
+import 'toastr/build/toastr.min.css'
 
 const { $axios } = useNuxtApp()
 const router = useRouter()
@@ -157,7 +159,7 @@ const startResendTimer = (duration = 60) => {
 
 const sendVerificationCode = async () => {
   if (!phone.value || phone.value.length !== 11) {
-    errorMessage.value = 'لطفاً شماره تماس را به درستی وارد کنید'
+    toastr.error("لطفاً شماره تماس را به درستی وارد کنید")
     return
   }
 
@@ -175,11 +177,11 @@ const sendVerificationCode = async () => {
 
     // تغییر اصلی اینجا - بررسی دقیق پاسخ سرور
     if (response.data?.success) {
-      codeSent.value = true // فقط بعد از پاسخ موفق
+      codeSent.value = true
       startResendTimer()
-      console.log('وضعیت codeSent تغییر کرد به:', codeSent.value) // تأیید در کنسول
+      toastr.success("کد تایید با موفقیت ارسال شد")
     } else {
-      errorMessage.value = response.data?.message || 'خطا در ارسال کد تأیید'
+      toastr.error("خطا در ارسال کد تأیید")
     }
   } catch (error: any) {
     console.error('خطا در ارسال کد:', error)
@@ -197,8 +199,8 @@ const resendCode = async () => {
 }
 
 const verifyCode = async () => {
-  if (isVerifying.value) return
-  isVerifying.value = true
+  if (isVerifying.value) return;
+  isVerifying.value = true;
   try {
     const response = await $axios.post('/user/login', {
       mobile: phone.value,
@@ -208,68 +210,52 @@ const verifyCode = async () => {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: 10000 // 10 ثانیه timeout
+      timeout: 10000
     });
 
-    // پردازش پاسخ موفق
-    console.log('پاسخ سرور:', response.data);
     if (response.data?.access_token) {
-      // role را به صورت رشته ذخیره کن
-      const userRole = response.data.user.role == 1 ? '1' : '2'
-      response.data.user.role = userRole
+      const userRole = response.data.user.role.toString();
+      
+      if (userRole !== '1' && userRole !== '2') {
+        Command: toastr["error"]("شما مجوز دسترسی به این بخش را ندارید")
+        return;
+      }
+
+      response.data.user.role = userRole;
       if (!response.data.user.status) {
-        response.data.user.status = 'active'
+        response.data.user.status = 'active';
       }
-      // ذخیره کاربر و نقش
-      localStorage.setItem('role', userRole)
-      localStorage.setItem('currentUser', JSON.stringify(response.data.user))
-      sessionStorage.setItem('auth_token', response.data.access_token)
+
+      // ذخیره اطلاعات کاربر
+      localStorage.setItem('role', userRole);
+      localStorage.setItem('currentUser', JSON.stringify(response.data.user));
+      sessionStorage.setItem('auth_token', response.data.access_token);
+
+      // هدایت بر اساس نقش
       if (userRole === '1') {
-        localStorage.setItem('currentAdminId', response.data.user.id.toString())
-        await router.push('/admin/admin_counter')
+        localStorage.setItem('currentAdminId', response.data.user.id.toString());
+        Command: toastr["success"]("مدیر گرامی، با موفقیت وارد شدید")
+        await router.push('/admin/admin_counter');
       } else if (userRole === '2') {
-        localStorage.setItem('currentRepairmanId', response.data.user.id.toString())
-        // --- اضافه کردن به لیست repairmen اگر وجود ندارد ---
-        let repairmen = JSON.parse(localStorage.getItem('repairmen') || '[]');
-        const exists = repairmen.some((r: any) => r.id === response.data.user.id);
-        if (!exists) {
-          repairmen.push({
-            id: response.data.user.id,
-            fullName: response.data.user.name,
-            phone: response.data.user.mobile || response.data.user.phone,
-            specialty: response.data.user.specialty || 'general',
-            status: response.data.user.status || 'active'
-          });
-          localStorage.setItem('repairmen', JSON.stringify(repairmen));
-        }
-        await router.push('/repairman/index_repairs')
-      } else {
-        await router.push('/')
+        localStorage.setItem('currentRepairmanId', response.data.user.id.toString());
+        Command: toastr["success"]("تعمیرکار گرامی، با موفقیت وارد شدید")
+        await router.push('/repairman/index_repairs');
       }
-      // ذخیره وضعیت احراز هویت در composable
-      auth.setAuth(response.data.access_token, response.data.user)
+      
+      // ذخیره وضعیت احراز هویت
+      auth.setAuth(response.data.access_token, response.data.user);
     }
   } catch (error: any) {
-    // مدیریت خطاهای مختلف
+    // مدیریت خطاها
     if (error.response) {
-      // سرور پاسخ داده اما با خطا
-      console.error('خطای سرور:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
-      });
-      errorMessage.value = error.response.data?.message || 'خطای سرور';
+      Command: toastr["error"](error.response.data?.message || "خطای سرور")
     } else if (error.request) {
-      // درخواست ارسال شده اما پاسخی دریافت نشده
-      console.error('پاسخی دریافت نشد:', error.request);
-      errorMessage.value = 'اتصال به سرور برقرار نشد';
+      Command: toastr["error"]("اتصال به سرور برقرار نشد")
     } else {
-      // خطا در تنظیم درخواست
-      console.error('خطای تنظیم درخواست:', error.message);
-      errorMessage.value = 'خطا در ارسال درخواست';
+      Command: toastr["error"]("خطا در ارسال درخواست")
     }
   } finally {
-    isVerifying.value = false
+    isVerifying.value = false;
   }
 };
 

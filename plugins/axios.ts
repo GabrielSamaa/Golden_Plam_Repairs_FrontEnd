@@ -3,7 +3,7 @@ import axios from 'axios'
 
 export default defineNuxtPlugin(() => {
   const instance = axios.create({
-    baseURL: 'http://localhost:8000/api',
+    baseURL: 'https://api-nakhltalaei.ir/api',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
