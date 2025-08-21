@@ -28,7 +28,7 @@
         v-for="message in filteredMessages" 
         :key="message.id" 
         class="message-card"
-        :class="{ unread: !message.read }"
+        :class="{ unread: !message.status }"
         @click="viewMessage(message)"
       >
         <div class="message-header">
@@ -37,7 +37,7 @@
             <span class="date">{{ new Date(message.created_at).toLocaleDateString('fa-IR') }}</span>
           </div>
           <div class="message-status">
-            <span v-if="!message.read" class="badge">جدید</span>
+            <span v-if="!message.status" class="badge">جدید</span>
           </div>
         </div>
         <div class="message-preview">
@@ -147,10 +147,26 @@ const filteredMessages = computed(() => {
   )
 })
 
-const viewMessage = (message) => {
-  selectedMessage.value = message
-  showMessageModal.value = true
-  // Here you might want to mark the message as read via an API call in the future
+const viewMessage = async (message) => {
+  try {
+    // ذخیره پیام انتخاب شده
+    selectedMessage.value = message
+    showMessageModal.value = true
+    
+    // اگر پیام خوانده نشده است، وضعیت آن را به خوانده شده تغییر بده
+    if (!message.status) {
+      await $api.patch(`user/Message/${message.id}/read`)
+      
+      // بروزرسانی وضعیت پیام در لیست
+      const index = messages.value.findIndex(m => m.id === message.id)
+      if (index !== -1) {
+        messages.value[index].status = true
+      }
+    }
+  } catch (error) {
+    console.error('Error marking message as read:', error)
+    toastr.error('خطا در بروزرسانی وضعیت پیام')
+  }
 }
 
 const replyToMessage = () => {

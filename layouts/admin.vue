@@ -194,12 +194,6 @@ const handleResize = () => {
   }
 }
 
-// تابع برای به‌روزرسانی تعداد پیام‌های نخوانده
-const updateUnreadCount = () => {
-  const messages = JSON.parse(localStorage.getItem('userMessages') || '[]')
-  unreadCount.value = messages.filter(message => !message.read).length
-}
-
 // تابع برای باز/بسته کردن منوی کاربر
 const toggleUserMenu = () => {
   isUserMenuOpen.value = !isUserMenuOpen.value
@@ -251,17 +245,31 @@ const updateUserInfo = () => {
   }
 }
 
-// به‌روزرسانی تعداد پیام‌ها در زمان لود صفحه
-onMounted(() => {
+// تابع جدید برای دریافت تعداد پیام‌های نخوانده از API
+const updateUnreadCount = async () => {
+  try {
+    const response = await $api.get('user/Message/unread-count')
+    unreadCount.value = response.data.count
+  } catch (error) {
+    console.error('Error fetching unread messages count:', error)
+    unreadCount.value = 0
+  }
+}
+
+// به‌روزرسانی onMounted
+onMounted(async () => {
   cheng()
-  updateUnreadCount()
-  updateUserInfo()
-  window.addEventListener('storage', () => {
-    updateUnreadCount()
-    updateUserInfo()
+  await updateUnreadCount() // دریافت اولیه تعداد پیام‌های نخوانده
+  
+  // به‌روزرسانی هر 30 ثانیه
+  const interval = setInterval(async () => {
+    await updateUnreadCount()
+  }, 30000)
+
+  // پاکسازی interval در onUnmounted
+  onUnmounted(() => {
+    clearInterval(interval)
   })
-  window.addEventListener('resize', handleResize)
-  handleResize()
 })
 
 onUnmounted(() => {
