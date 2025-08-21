@@ -34,7 +34,7 @@
         </div>
         <select class="form-select" v-model="statusFilter">
           <option value="all">همه وضعیت‌ها</option>
-          <option value="pending">در انتظار بررسی</option>
+          <option value="received">در انتظار بررسی</option>
           <option value="in-progress">در حال انجام</option>
           <option value="completed">تکمیل شده</option>
         </select>
@@ -301,48 +301,50 @@ watch(repairs, (newRepairs) => {
 
 const filteredRepairs = computed(() => {
   try {
-    let result = repairs.value.filter(repair => {
-      // اگر جستجویی انجام نشده، همه را نمایش بده
-      if (!searchQuery.value) {
-        return statusFilter.value === 'all' || repair.status === statusFilter.value
-      }
+    // حذف دستگاه‌هایی که وضعیت confirmed یا delivered دارند
+    let result = repairs.value.filter(repair => 
+      repair.status !== 'confirmed' && repair.status !== 'delivered'
+    );
 
-      const searchLower = searchQuery.value.toLowerCase()
-      const matchesSearch =
-          repair.customerName?.toLowerCase().includes(searchLower) ||
-          repair.trackingNumber?.toLowerCase().includes(searchLower) ||
-          repair.deviceType?.toLowerCase().includes(searchLower) ||
-          repair.phone?.toLowerCase().includes(searchLower) ||
-          repair.category?.toLowerCase().includes(searchLower) ||
-          repair.issue?.toLowerCase().includes(searchLower)
+    // فیلتر بر اساس وضعیت
+    if (statusFilter.value !== 'all') {
+      result = result.filter(repair => {
+        let status = (repair.status || '').toLowerCase();
+        let filter = (statusFilter.value || '').toLowerCase();
 
-      const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
+        const statusMap = {
+          'received': 'received',
+          'in_progress': 'in_progress',
+          'fixed': 'fixed'
+        };
+        
+        return status === statusMap[filter];
+      });
+    }
 
-      return matchesSearch && matchesStatus
-    })
+    // جستجو
+    if (searchQuery.value) {
+      const searchLower = searchQuery.value.toLowerCase();
+      result = result.filter(repair => {
+        return (
+          (repair.verification_code || '').toString().toLowerCase().includes(searchLower) ||
+          (repair.device_name || '').toString().toLowerCase().includes(searchLower) ||
+          (repair.device_problem || '').toString().toLowerCase().includes(searchLower)
+        );
+      });
+    }
 
-    // Sort repairs based on status and dates
-    return result.sort((a, b) => {
-      // First priority: status (pending > in-progress > completed)
-      const statusOrder = {'pending': 0, 'in-progress': 1, 'completed': 2}
-      if (statusOrder[a.status] !== statusOrder[b.status]) {
-        return statusOrder[a.status] - statusOrder[b.status]
-      }
+    // مرتب‌سازی بر اساس تاریخ دریافت (جدیدترین اول)
+    result.sort((a, b) => {
+      const dateA = new Date(a.received_at || 0);
+      const dateB = new Date(b.received_at || 0);
+      return dateB - dateA;
+    });
 
-      // Second priority: admin marked ready
-      if (a.adminMarkedReady !== b.adminMarkedReady) {
-        return a.adminMarkedReady ? 1 : -1
-      }
-
-      // Third priority: dates
-      const getDate = (repair) => {
-        return repair.completionDate || repair.receptionDate || repair.date || ''
-      }
-      return getDate(b).localeCompare(getDate(a))
-    })
+    return result;
   } catch (error) {
-    console.error('Error filtering repairs:', error)
-    return repairs.value
+    console.error('Error in filteredRepairs:', error);
+    return [];
   }
 })
 

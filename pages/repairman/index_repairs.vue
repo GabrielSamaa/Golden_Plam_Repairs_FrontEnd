@@ -77,9 +77,9 @@
         </div>
         <select class="form-select" v-model="statusFilter">
           <option value="all">همه وضعیت‌ها</option>
-          <option value="pending">در انتظار بررسی</option>
-          <option value="in-progress">در حال انجام</option>
-          <option value="completed">تکمیل شده</option>
+          <option value="received">دریافت شده</option>
+          <option value="in_progress">در حال انجام</option>
+          <option value="fixed">تعمیر شده</option>
         </select>
       </div>
     </div>
@@ -344,50 +344,65 @@ watch(repairs, (newRepairs) => {
 
 const filteredRepairs = computed(() => {
   try {
-    let result = repairs.value.filter(repair => {
-      // اگر جستجویی انجام نشده، همه را نمایش بده
-      if (!searchQuery.value) {
-        return statusFilter.value === 'all' || repair.status === statusFilter.value
-      }
+    let result = repairs.value;
 
-      const searchLower = searchQuery.value.toLowerCase()
-      const matchesSearch = 
-        repair.customerName?.toLowerCase().includes(searchLower) ||
-        repair.trackingNumber?.toLowerCase().includes(searchLower) ||
-        repair.deviceType?.toLowerCase().includes(searchLower) ||
-        repair.phone?.toLowerCase().includes(searchLower) ||
-        repair.category?.toLowerCase().includes(searchLower) ||
-        repair.issue?.toLowerCase().includes(searchLower)
+    // حذف خودکار دستگاه‌هایی که وضعیت confirmed یا delivered دارند
+    result = result.filter(repair => 
+      repair.status !== 'confirmed' && repair.status !== 'delivered'
+    );
+
+    // فیلتر بر اساس وضعیت انتخابی
+    if (statusFilter.value !== 'all') {
+      result = result.filter(repair => {
+        const currentStatus = repair.status?.toLowerCase() || '';
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const statusMap = {
+          'received': 'received',
+          'in_progress': 'in_progress',
+          'fixed': 'fixed'
+        };
+        return currentStatus === statusMap[selectedStatus];
+      });
+    }
+
+    // جستجو
+    if (searchQuery.value) {
+      const searchLower = searchQuery.value.toLowerCase();
+      result = result.filter(repair => {
+        return (
+          (repair.verification_code || '').toString().toLowerCase().includes(searchLower) ||
+          (repair.device_name || '').toString().toLowerCase().includes(searchLower) ||
+          (repair.device_problem || '').toString().toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // مرتب‌سازی بر اساس تاریخ تحویل (نزدیک‌ترین تاریخ اول)
+    result.sort((a, b) => {
+      // اگر تاریخ تحویل ندارند، از تاریخ دریافت استفاده می‌کنیم
+      const dateA = a.delivered_at ? new Date(a.delivered_at) : 
+                   (a.received_at ? new Date(a.received_at) : new Date(8640000000000000));
+      const dateB = b.delivered_at ? new Date(b.delivered_at) : 
+                   (b.received_at ? new Date(b.received_at) : new Date(8640000000000000));
+
+      // اگر هر دو تاریخ تحویل دارند
+      if (a.delivered_at && b.delivered_at) {
+        return new Date(a.delivered_at) - new Date(b.delivered_at);
+      }
+      // اگر فقط یکی تاریخ تحویل دارد
+      if (a.delivered_at) return -1; // a بالاتر می‌رود
+      if (b.delivered_at) return 1;  // b بالاتر می‌رود
       
-      const matchesStatus = statusFilter.value === 'all' || repair.status === statusFilter.value
-      
-      return matchesSearch && matchesStatus
-    })
+      // اگر هیچکدام تاریخ تحویل ندارند، بر اساس تاریخ دریافت مرتب می‌کنیم
+      return new Date(b.received_at || 0) - new Date(a.received_at || 0);
+    });
 
-    // Sort repairs based on status and dates
-    return result.sort((a, b) => {
-      // First priority: status (pending > in-progress > completed)
-      const statusOrder = { 'pending': 0, 'in-progress': 1, 'completed': 2 }
-      if (statusOrder[a.status] !== statusOrder[b.status]) {
-        return statusOrder[a.status] - statusOrder[b.status]
-      }
-
-      // Second priority: admin marked ready
-      if (a.adminMarkedReady !== b.adminMarkedReady) {
-        return a.adminMarkedReady ? 1 : -1
-      }
-
-      // Third priority: dates
-      const getDate = (repair) => {
-        return repair.completionDate || repair.receptionDate || repair.date || ''
-      }
-      return getDate(b).localeCompare(getDate(a))
-    })
+    return result;
   } catch (error) {
-    console.error('Error filtering repairs:', error)
-    return repairs.value
+    console.error('Error in filteredRepairs:', error);
+    return [];
   }
-})
+});
 
 const getStatusText = (status) => {
   const statusMap = {
@@ -489,90 +504,33 @@ const completeRepair = async () => {
     try {
       const { $axios } = useNuxtApp();
       
-      // بررسی وجود قطعات در دیتابیس
+      // بررسی وجود قطعات
       const repairResponse = await $axios.get(`/device/repair/${selectedRepair.value.id}`);
       const repairDetails = repairResponse.data.repair_details;
       
-      // اگر قطعات وجود نداشت یا آرایه خالی بود
       if (!repairDetails || (Array.isArray(repairDetails) && repairDetails.length === 0)) {
-        Command: toastr["warning"]("لطفا ابتدا قطعات تعمیر را ثبت کنید", "هشدار ")
-
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "newestOnTop": false,
-  "progressBar": false,
-  "positionClass": "toast-top-center",
-  "preventDuplicates": false,
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "5000",
-  "extendedTimeOut": "1000",
-  "showEasing": "swing",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
-}
-        // هدایت به صفحه ثبت قطعات
+        toastr.warning("لطفا ابتدا قطعات تعمیر را ثبت کنید");
         navigateTo(`/repairman/start_repairs?id=${selectedRepair.value.id}`);
         return;
       }
 
-      // آپدیت وضعیت به تعمیر شده
+      // آپدیت وضعیت
       await $axios.patch(`/device/repair/${selectedRepair.value.id}`, {
         status: 'fixed'
       });
 
-      // بروزرسانی وضعیت در فرانت
-      selectedRepair.value.status = 'fixed';
+      // حذف از لیست repairs
       const index = repairs.value.findIndex(r => r.id === selectedRepair.value.id);
       if (index !== -1) {
-        repairs.value[index].status = 'fixed';
+        repairs.value.splice(index, 1);
       }
-      
-      Command: toastr["success"]("وضعیت دستگاه با موفقیت به تعمیر شده تغییر کرد", "موفق")
 
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "newestOnTop": false,
-  "progressBar": false,
-  "positionClass": "toast-top-center",
-  "preventDuplicates": false,
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "5000",
-  "extendedTimeOut": "1000",
-  "showEasing": "swing",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
-}
+      toastr.success("وضعیت دستگاه با موفقیت به تعمیر شده تغییر کرد");
       closeModal();
       
     } catch (error) {
       console.error('خطا در تکمیل تعمیر:', error);
-      Command: toastr["error"]("خطا در بروزرسانی وضعیت", "خطا")
-
-toastr.options = {
-  "closeButton": false,
-  "debug": false,
-  "newestOnTop": false,
-  "progressBar": false,
-  "positionClass": "toast-top-center",
-  "preventDuplicates": false,
-  "onclick": null,
-  "showDuration": "300",
-  "hideDuration": "1000",
-  "timeOut": "5000",
-  "extendedTimeOut": "1000",
-  "showEasing": "swing",
-  "hideEasing": "linear",
-  "showMethod": "fadeIn",
-  "hideMethod": "fadeOut"
-}
+      toastr.error("خطا در بروزرسانی وضعیت");
     }
   }
 };
