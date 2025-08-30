@@ -36,6 +36,11 @@
         <div class="col-md-3">
           <button class="btn btn-primary" @click="applyArchiveFilters">جستجو</button>
         </div>
+        <div class="col-md-3">
+          <button class="btn btn-secondary" @click="refreshArchive" title="به‌روزرسانی بایگانی">
+            <i class="fas fa-sync-alt"></i> به‌روزرسانی
+          </button>
+        </div>
       </div>
     </div>
 
@@ -65,6 +70,9 @@
             <td>
               <button class="btn btn-sm btn-outline-primary" @click="viewArchiveItem(item.id)">
                 <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-info" @click="viewFinancialDetails(item.id)" title="مشاهده جزئیات مالی">
+                <i class="fas fa-dollar-sign"></i>
               </button>
             </td>
           </tr>
@@ -124,12 +132,78 @@
         </div>
       </div>
     </div>
+
+    <!-- مودال جزئیات مالی -->
+    <div class="modal" :class="{ show: showFinancialModal }" @click.self="closeFinancialModal">
+      <div class="modal-content" v-if="selectedFinancialRecord">
+        <div class="modal-header">
+          <h3>جزئیات مالی تعمیر</h3>
+          <button class="close-btn" @click="closeFinancialModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-section">
+            <h4>اطلاعات مشتری</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>شماره پیگیری:</label>
+                <span>{{ selectedFinancialRecord.trackingNumber }}</span>
+              </div>
+              <div class="detail-item">
+                <label>نام مشتری:</label>
+                <span>{{ selectedFinancialRecord.customerName }}</span>
+              </div>
+              <div class="detail-item">
+                <label>دستگاه:</label>
+                <span>{{ selectedFinancialRecord.deviceType }}</span>
+              </div>
+              <div class="detail-item">
+                <label>تاریخ:</label>
+                <span>{{ selectedFinancialRecord.date }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4>جزئیات هزینه‌ها</h4>
+            <div class="parts-list">
+              <div class="parts-header">
+                <span>نام قطعه</span>
+                <span>قیمت</span>
+              </div>
+              <div v-for="part in selectedFinancialRecord.parts" :key="part.name" class="part-item">
+                <span>{{ part.name }}</span>
+                <span>{{ formatCurrency(part.price) }}</span>
+              </div>
+              <div class="parts-summary">
+                <div class="summary-item">
+                  <label>مبلغ بیانه:</label>
+                  <span>{{ formatCurrency(selectedFinancialRecord.initialStatement) }}</span>
+                </div>
+                <div class="summary-item">
+                  <label>دستمزد تعمیر:</label>
+                  <span>{{ formatCurrency(selectedFinancialRecord.laborCost) }}</span>
+                </div>
+                <div class="summary-item expense">
+                  <label>هزینه قطعات:</label>
+                  <span>{{ formatCurrency(selectedFinancialRecord.totalPartsCost) }}</span>
+                </div>
+                <div class="summary-item total">
+                  <label>مبلغ قابل پرداخت:</label>
+                  <span class="final-amount">{{ formatCurrency(selectedFinancialRecord.totalCost) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import PersianDatePicker from '~/components/PersianDatePicker.vue'
+import { useNuxtApp } from '#app'
 
 definePageMeta({
   layout: 'admin',
@@ -140,8 +214,10 @@ const archiveSearch = ref('')
 const archiveStatus = ref('all')
 const archiveFromDate = ref('')
 const showArchiveModal = ref(false)
- const isLoading = ref(false);
+const showFinancialModal = ref(false)
+const isLoading = ref(false);
 const selectedArchiveItem = ref(null)
+const selectedFinancialRecord = ref(null)
 
 const archiveItems = ref([])
 
@@ -155,8 +231,8 @@ const loadArchiveItems = async () => {
     isLoading.value = true
     const { $api } = useNuxtApp();
     const response = await $api.get('/device/fixed-devices');
-    // فیلتر کردن فقط دستگاه‌های تحویل داده شده
-    archiveItems.value = response.data.filter(item => item.status === 'delivered')
+    // فیلتر کردن فقط دستگاه‌های paid شده (که باید در بایگانی باشند)
+    archiveItems.value = response.data.filter(item => item.repair_status === 'paid')
       .map(item => ({
         id: item.id,
         trackingNumber: item.verification_code,
@@ -205,6 +281,8 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const formatCurrency = (amount) => new Intl.NumberFormat('fa-IR').format(Number(amount || 0)) + ' تومان'
+
 const applyArchiveFilters = () => {
   // در واقعیت اینجا درخواست به سرور ارسال می‌شود
   console.log('فیلترهای بایگانی اعمال شد:', {
@@ -225,6 +303,58 @@ const viewArchiveItem = (id) => {
   }
 }
 
+const viewFinancialDetails = async (id) => {
+  try {
+    const { $api } = useNuxtApp()
+    const response = await $api.get(`/device/repair/${id}`)
+    const device = response.data
+    
+    // پارس کردن repair_details
+    let partsArr = []
+    let totalPartsCost = 0
+    if (device.repair_details) {
+      try {
+        const parsed = Array.isArray(device.repair_details) 
+          ? device.repair_details 
+          : JSON.parse(device.repair_details)
+        
+        partsArr = parsed.map((part) => ({
+          name: part.part_name || part.name || '',
+          price: Number(part.part_price || part.price || 0) || 0
+        }))
+        totalPartsCost = partsArr.reduce((sum, part) => sum + part.price, 0)
+      } catch (_) {}
+    }
+    
+    // محاسبه مبالغ
+    const laborCost = Number(device.repair_price) || 0
+    const initialStatement = Number(device.prepaid) || 0
+    const totalCost =  laborCost + totalPartsCost - initialStatement
+    
+    selectedFinancialRecord.value = {
+      id: String(device.id),
+      trackingNumber: device.verification_code || '',
+      date: device.delivered_at || device.created_at || '',
+      customerName: device.customer?.name || '',
+      deviceType: device.device_name || '',
+      totalPartsCost,
+      laborCost,
+      initialStatement,
+      totalCost,
+      parts: partsArr
+    }
+    
+    showFinancialModal.value = true
+  } catch (error) {
+    console.error('خطا در دریافت جزئیات مالی:', error)
+  }
+}
+
+const closeFinancialModal = () => {
+  showFinancialModal.value = false
+  selectedFinancialRecord.value = null
+}
+
 const deleteArchiveItem = (id) => {
   if (confirm('آیا از حذف این مورد از بایگانی اطمینان دارید؟')) {
     try {
@@ -238,9 +368,22 @@ const deleteArchiveItem = (id) => {
   }
 }
 
-const refreshArchive = () => {
-  loadArchiveItems()
+const refreshArchive = async () => {
+  await loadArchiveItems()
 }
+
+// تابع برای به‌روزرسانی خودکار بایگانی
+const refreshArchiveIfNeeded = () => {
+  // هر 30 ثانیه یکبار بایگانی را به‌روزرسانی کن
+  setInterval(async () => {
+    await loadArchiveItems()
+  }, 30000)
+}
+
+onMounted(() => {
+  loadArchiveItems()
+  refreshArchiveIfNeeded()
+})
 </script>
 
 <style scoped>
@@ -463,6 +606,73 @@ const refreshArchive = () => {
 
 .part-item:last-child {
   border-bottom: none;
+}
+
+/* استایل‌های مودال مالی */
+.detail-section {
+  margin-bottom: 30px;
+}
+
+.detail-section h4 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.parts-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  padding: 12px;
+  background: #e9ecef;
+  font-weight: 500;
+}
+
+.parts-summary {
+  padding: 15px;
+  background: #fff;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.summary-item.total {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 2px solid #dee2e6;
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.summary-item.expense {
+  color: #e74c3c;
+}
+
+.summary-item.expense span {
+  color: #e74c3c;
+}
+
+.final-amount {
+  color: #2ecc71;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #7f8c8d;
 }
 
 @media (max-width: 768px) {

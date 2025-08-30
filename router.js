@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import NotFound from './views/NotFound.vue'
 
 const routes = [
   {
@@ -27,7 +30,12 @@ const routes = [
   {
     path: '/',
     redirect: '/login'
-  }
+  },
+  {
+    path: '*',
+    name: 'NotFound',
+    component: () => import('./views/NotFound.vue'),
+  },
 ]
 
 const router = createRouter({

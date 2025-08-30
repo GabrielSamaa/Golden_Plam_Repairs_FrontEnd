@@ -78,8 +78,8 @@
             <th>تاریخ</th>
             <th>مشتری</th>
             <th>دستگاه</th>
-            <th>هزینه قطعات</th>
-            <th>مبلغ قابل پرداخت</th>
+            <!-- <th>هزینه قطعات</th> -->
+            <!-- <th>مبلغ قابل پرداخت</th> -->
             <th>بیانه</th>
             <th>وضعیت</th>
             <th>عملیات</th>
@@ -91,8 +91,8 @@
             <td>{{ record.date }}</td>
             <td>{{ record.customerName }}</td>
             <td>{{ record.deviceType }}</td>
-            <td>{{ formatCurrency(record.totalPartsCost) }}</td>
-            <td>{{ formatCurrency(record.totalPartsCost + record.laborCost + record.initialStatement) }}</td>
+            <!-- <td>{{ formatCurrency(record.totalPartsCost) }}</td> -->
+            <!-- <td>{{ formatCurrency(record.totalCost) }}</td> -->
             <td>{{ formatCurrency(record.initialStatement) }}</td>
             <td>
               <span :class="'status-' + record.status">{{ getStatusText(record.status) }}</span>
@@ -111,42 +111,77 @@
     <div class="transactions-section" v-if="hasDebts">
       <h3>بدهی تکنسین‌ها</h3>
       <div v-for="(group, technician) in groupedDebts" :key="technician" class="technician-group">
-        <div class="d-flex" style="justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="technician-header">
           <h4>{{ technician || 'نامشخص' }}</h4>
-          <div class="d-flex" style="gap:10px; align-items:center;">
-            <div><strong>جمع بدهی قطعات:</strong> {{ formatCurrency(groupTotalDebt(technician)) }}</div>
+          <div class="technician-summary">
+            <div class="debt-total"><strong>جمع بدهی قطعات:</strong> {{ formatCurrency(groupTotalDebt(technician)) }}</div>
             <button class="btn btn-primary" @click="openConfirmModal(() => settleGroup(technician), 'تسویه همه بدهی‌های ' + technician)" :disabled="group.settling">
               <span v-if="group.settling" class="local-spinner"></span>
-              تسویه همه
+              تسویه 
             </button>
           </div>
         </div>
-        <table class="table">
-          <thead>
-          <tr>
-            <th>نام دستگاه</th>
-            <th>کد رهگیری</th>
-            <th>نام تعمیرکننده</th>
-            <th>بدهی (هزینه قطعات)</th>
-            <th>عملیات</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="row in group.rows" :key="row.id">
-            <td>{{ row.deviceType }}</td>
-            <td>{{ row.trackingNumber }}</td>
-            <td>{{ row.repairerName || '-' }}</td>
-            <td>{{ formatCurrency(row.debt) }}</td>
-            <td class="d-flex" style="gap:8px;">
-              <button class="btn btn-sm btn-info" @click="viewDevice(row)"><i class="fas fa-eye"></i></button>
-              <button class="btn btn-sm btn-primary" @click="openConfirmModal(() => settle(row), 'تسویه بدهی برای ' + row.trackingNumber)" :disabled="row._loading">
-                <span v-if="row._loading" class="local-spinner"></span>
-                <i class="fas fa-money-bill"></i>
-              </button>
-            </td>
-          </tr>
-          </tbody>
-        </table>
+        
+        <!-- جدول دسکتاپ -->
+        <div class="desktop-table">
+          <table class="table">
+            <thead>
+            <tr>
+              <th>نام دستگاه</th>
+              <th>کد رهگیری</th>
+              <th>نام تعمیرکننده</th>
+              <th>بدهی (هزینه قطعات)</th>
+              <th>عملیات</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="row in group.rows" :key="row.id">
+              <td>{{ row.deviceType }}</td>
+              <td>{{ row.trackingNumber }}</td>
+              <td>{{ row.repairerName || '-' }}</td>
+              <td>{{ formatCurrency(row.debt) }}</td>
+              <td class="action-buttons">
+                <button class="btn btn-sm btn-info" @click="viewDevice(row)" title="مشاهده جزئیات"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-primary" @click="openConfirmModal(() => settle(row), 'تسویه بدهی برای ' + row.trackingNumber)" :disabled="row._loading" title="تسویه بدهی">
+                  <span v-if="row._loading" class="local-spinner"></span>
+                  <i class="fas fa-money-bill"></i>
+                </button>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- کارت‌های موبایل -->
+        <div class="mobile-cards">
+          <div v-for="row in group.rows" :key="row.id" class="debt-card">
+            <div class="card-header">
+              <h5>{{ row.deviceType }}</h5>
+              <span class="tracking-number">{{ row.trackingNumber }}</span>
+            </div>
+            <div class="card-body">
+              <div class="debt-info">
+                <div class="info-row">
+                  <label>تعمیرکننده:</label>
+                  <span>{{ row.repairerName || '-' }}</span>
+                </div>
+                <div class="info-row">
+                  <label>بدهی:</label>
+                  <span class="debt-amount">{{ formatCurrency(row.debt) }}</span>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-info" @click="viewDevice(row)" title="مشاهده جزئیات">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-primary" @click="openConfirmModal(() => settle(row), 'تسویه بدهی برای ' + row.trackingNumber)" :disabled="row._loading" title="تسویه بدهی">
+                  <span v-if="row._loading" class="local-spinner"></span>
+                  <i class="fas fa-money-bill"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="transactions-section" v-else>
@@ -180,6 +215,10 @@
               <div class="detail-item">
                 <label>تاریخ:</label>
                 <span>{{ selectedRecord.date }}</span>
+              </div>
+              <div class="detail-item">
+                <label>نام تکنسین:</label>
+                <span>{{ selectedRecord.technicianName || 'نامشخص' }}</span>
               </div>
             </div>
           </div>
@@ -234,6 +273,7 @@
               </div>
             </div>
           </div>
+          
         </div>
       </div>
     </div>
@@ -272,6 +312,10 @@
     </div>
   </div>
 </template>
+
+
+  <!-- محتوای تمپلیت بدون تغییر -->
+
 
 <script setup>
 import { useRoute } from 'vue-router'
@@ -325,21 +369,81 @@ async function fetchFixedDevices() {
   try {
     isLoading.value = true
     const res = await $api.get('/device/fixed-devices')
+    console.log('API Response:', res.data)
+    
     if (res.data && Array.isArray(res.data)) {
-      financialRecords.value = res.data.map((item) => {
+      // فیلتر کردن فقط دستگاه‌های unpaid
+      const unpaidDevices = res.data.filter(item => item.repair_status !== 'paid' && item.repair_status !== 'pay')
+      
+      financialRecords.value = unpaidDevices.map((item) => {
         let partsArr = []
         let totalPartsCost = 0
+        
+        // پردازش repair_details با بررسی نوع داده
         if (item.repair_details) {
           try {
-            const parsed = JSON.parse(item.repair_details)
-            partsArr = parsed.map(([name, price]) => {
-              const p = Number(price) || 0
-              totalPartsCost += p
-              return { name, price: p }
-            })
-          } catch (_) {}
+            // بررسی اینکه آیا repair_details یک آرایه است
+            if (Array.isArray(item.repair_details)) {
+              partsArr = item.repair_details.map((part) => {
+                const name = part.name || part.part_name || 'نامشخص'
+                const price = Number(part.price || part.part_price || 0)
+                totalPartsCost += price
+                return { name, price }
+              })
+            } 
+            // بررسی اینکه آیا repair_details یک رشته JSON است
+            else if (typeof item.repair_details === 'string') {
+              try {
+                const parsed = JSON.parse(item.repair_details)
+                
+                // اگر پارس شده یک آرایه است
+                if (Array.isArray(parsed)) {
+                  // بررسی ساختار آیتم‌های آرایه
+                  if (parsed.length > 0) {
+                    // اگر آیتم‌ها آرایه‌های تو در تو هستند [name, price]
+                    if (Array.isArray(parsed[0])) {
+                      partsArr = parsed.map((partArray) => {
+                        const name = partArray[0] || 'نامشخص'
+                        const price = Number(partArray[1]) || 0
+                        totalPartsCost += price
+                        return { name, price }
+                      })
+                    } 
+                    // اگر آیتم‌ها آبجکت هستند {name, price}
+                    else if (typeof parsed[0] === 'object') {
+                      partsArr = parsed.map((part) => {
+                        const name = part.name || part.part_name || 'نامشخص'
+                        const price = Number(part.price || part.part_price || 0)
+                        totalPartsCost += price
+                        return { name, price }
+                      })
+                    }
+                  }
+                }
+              } catch (parseError) {
+                console.error('Error parsing JSON repair_details for item', item.id, ':', parseError)
+              }
+            }
+          } catch (error) {
+            console.error('Error processing repair_details for item', item.id, ':', error)
+          }
         }
-        const price = item.price != null ? Number(item.price) : item.repair_price != null ? Number(item.repair_price) : null
+        
+        // محاسبه مبلغ قابل پرداخت
+        const laborCost = Number(item.repair_price) || 0
+        const initialStatement = Number(item.prepaid) || 0
+        const totalCost = initialStatement + laborCost + totalPartsCost
+        
+        // نام تعمیرکننده از technician object
+        let technicianName = 'نامشخص'
+        if (item.technician && item.technician.name) {
+          technicianName = item.technician.name
+        } else if (item.technician_name) {
+          technicianName = item.technician_name
+        } else if (item.technician_id) {
+          technicianName = `تکنسین ${item.technician_id}`
+        }
+        
         return {
           id: String(item.id),
           trackingNumber: item.verification_code || '',
@@ -347,21 +451,23 @@ async function fetchFixedDevices() {
           customerName: item.customer?.name || '',
           deviceType: item.device_name || '',
           totalPartsCost,
-          laborCost: Number(item.repair_price) || 0,
-          initialStatement: Number(item.prepaid) || 0,
-          totalCost: (Number(item.prepaid) || 0) + (Number(item.repair_price) || 0),
+          laborCost,
+          initialStatement,
+          totalCost,
           parts: partsArr,
           status: item.status || '',
           type: 'repair',
           description: item.appearance_details || '',
           repair_status: item.repair_status || '',
-          technicianName: item.technician?.name || item.repairer?.name || '',
-          repairerName: item.repairer?.name || '',
-          priceField: price,
+          technicianName: technicianName,
+          repairerName: technicianName,
+          technicianId: item.technician_id,
+          priceField: item.repair_price || null,
         }
       })
     }
-  } catch (_) {
+  } catch (error) {
+    console.error('خطا در بارگذاری اطلاعات:', error)
     showMessage('خطا', 'خطا در بارگذاری اطلاعات')
   } finally {
     isLoading.value = false
@@ -400,13 +506,22 @@ const netProfit = computed(() => totalLaborCost.value)
 const formatCurrency = (amount) => new Intl.NumberFormat('fa-IR').format(Number(amount || 0)) + ' تومان'
 
 const getStatusText = (status) => {
-  const statusMap = { pending: 'در انتظار', completed: 'تکمیل شده', cancelled: 'لغو شده', delivered: 'تحویل شده', unpaid: 'پرداخت نشده', pay: 'تسویه شده' }
+  const statusMap = { 
+    pending: 'در انتظار', 
+    completed: 'تکمیل شده', 
+    cancelled: 'لغو شده', 
+    delivered: 'تحویل شده', 
+    unpaid: 'پرداخت نشده', 
+    pay: 'تسویه شده' 
+  }
   return statusMap[status] || status
 }
 
-const viewDetails = (record) => {
+const viewDetails = async (record) => {
   selectedRecord.value = { ...record }
   showDetailsModal.value = true
+
+  // سنکرون‌سازی ورودی قیمت
   if (record.priceField != null) {
     priceInput.value = record.priceField
     originalPrice.value = record.priceField
@@ -416,6 +531,70 @@ const viewDetails = (record) => {
   }
   isPaymentMode.value = false
   isPriceChanged.value = false
+
+  // دریافت جزئیات قطعات و نام تکنسین از سرور
+  try {
+    const res = await $api.get(`/device/repair/${record.id}`)
+    console.log('Device Repair API Response:', res.data)
+    
+    let partsArr = []
+    let totalPartsCost = 0
+    
+    // پردازش repair_details از پاسخ API
+    if (res?.data?.repair_details) {
+      try {
+        let details = res.data.repair_details
+        
+        // اگر رشته JSON است، پارس کن
+        if (typeof details === 'string') {
+          try {
+            details = JSON.parse(details)
+          } catch (parseError) {
+            console.error('Error parsing repair_details JSON:', parseError)
+            details = []
+          }
+        }
+        
+        // پردازش جزئیات قطعات
+        if (Array.isArray(details)) {
+          details.forEach((item) => {
+            if (Array.isArray(item)) {
+              // فرمت [name, price]
+              const name = item[0] || 'نامشخص'
+              const price = Number(item[1]) || 0
+              partsArr.push({ name, price })
+              totalPartsCost += price
+            } else if (typeof item === 'object') {
+              // فرمت {name, price} یا {part_name, part_price}
+              const name = item.name || item.part_name || 'نامشخص'
+              const price = Number(item.price || item.part_price || 0)
+              partsArr.push({ name, price })
+              totalPartsCost += price
+            }
+          })
+        }
+      } catch (error) {
+        console.error('Error processing repair details:', error)
+      }
+    }
+
+    // دریافت نام تکنسین
+    let technicianName = selectedRecord.value.technicianName || 'نامشخص'
+    if (res?.data?.technician) {
+      technicianName = res.data.technician.name || res.data.technician.full_name || technicianName
+    } else if (res?.data?.technician_name) {
+      technicianName = res.data.technician_name
+    } else if (res?.data?.technician_id) {
+      technicianName = `تکنسین ${res.data.technician_id}`
+    }
+
+    // به‌روزرسانی رکورد انتخاب‌شده
+    selectedRecord.value.parts = partsArr
+    selectedRecord.value.totalPartsCost = totalPartsCost
+    selectedRecord.value.technicianName = technicianName
+  } catch (error) {
+    console.error('Error fetching device details:', error)
+  }
 }
 
 const closeDetailsModal = () => {
@@ -453,16 +632,24 @@ const savePrice = async () => {
   const id = selectedRecord.value.id
   const parts = Number(selectedRecord.value.totalPartsCost) || 0
   const inputVal = Number(priceInput.value) || 0
-  const priceToSave = isPaymentMode.value ? inputVal : inputVal + parts
+  const priceToSave = isPaymentMode.value ? inputVal : inputVal
+  
   try {
     isSaving.value = true
-    await $api.put(`/device/repair/${id}`, { price: priceToSave })
+    await $api.put(`/device/repair/${id}`, { repair_price: priceToSave })
     originalPrice.value = priceToSave
     isPriceChanged.value = false
     selectedRecord.value.priceField = priceToSave
+    selectedRecord.value.laborCost = priceToSave
+    
+    // به‌روزرسانی مبلغ کل
+    selectedRecord.value.totalCost = (Number(selectedRecord.value.initialStatement) || 0) + priceToSave + (Number(selectedRecord.value.totalPartsCost) || 0)
+    
     const idx = financialRecords.value.findIndex((x) => x.id === id)
     if (idx > -1) {
       financialRecords.value[idx].priceField = priceToSave
+      financialRecords.value[idx].laborCost = priceToSave
+      financialRecords.value[idx].totalCost = selectedRecord.value.totalCost
     }
     showMessage('موفقیت', 'اطلاعات مالی با موفقیت ذخیره شد')
   } catch (_) {
@@ -474,8 +661,16 @@ const savePrice = async () => {
 
 function buildDebts() {
   debts.value = financialRecords.value
-      .filter((r) => r.repair_status !== 'pay')
-      .map((r) => ({ id: r.id, technicianName: r.technicianName || r.repairerName || '', repairerName: r.repairerName || '', deviceType: r.deviceType, trackingNumber: r.trackingNumber, debt: Number(r.totalPartsCost) || 0, _loading: false }))
+      .filter((r) => r.repair_status !== 'pay' && r.repair_status !== 'paid')
+      .map((r) => ({ 
+        id: r.id, 
+        technicianName: r.technicianName || 'نامشخص', 
+        repairerName: r.technicianName || 'نامشخص', 
+        deviceType: r.deviceType, 
+        trackingNumber: r.trackingNumber, 
+        debt: Number(r.totalPartsCost) || 0,
+        _loading: false 
+      }))
 }
 
 const groupedDebts = computed(() => {
@@ -490,7 +685,7 @@ const groupedDebts = computed(() => {
   return groups
 })
 
-const hasDebts = computed(() => Object.keys(groupedDebts.value).length > 0)
+const hasDebts = computed(() => debts.value.length > 0)
 
 const groupTotalDebt = (technician) => {
   const group = groupedDebts.value[technician]
@@ -511,7 +706,8 @@ const settle = async (row) => {
     if (idx > -1) financialRecords.value[idx].repair_status = 'pay'
     buildDebts()
     showMessage('موفقیت', 'تسویه با موفقیت انجام شد')
-  } catch (_) {
+  } catch (error) {
+    console.error('خطا در تسویه:', error)
     showMessage('خطا', 'خطا در تسویه')
   } finally {
     row._loading = false
@@ -530,9 +726,10 @@ const settleGroup = async (technician) => {
       if (idx > -1) financialRecords.value[idx].repair_status = 'pay'
     }
     buildDebts()
-    showMessage('موفقیت', 'تسویه همه با موفقیت انجام شد')
-  } catch (_) {
-    showMessage('خطا', 'خطا در تسویه همه')
+    showMessage('موفقیت', 'تسویه به '+technician+' با موفقیت انجام شد')
+  } catch (error) {
+    console.error('خطا در تسویه به '+technician+':', error)
+    showMessage('خطا', 'خطا در تسویه به '+technician)
   } finally {
     group.settling = false
   }
@@ -693,9 +890,151 @@ const closeMessageModal = () => {
   border-radius: 8px;
 }
 
+.technician-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.technician-header h4 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.technician-summary {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.debt-total {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.desktop-table {
+  display: block;
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.debt-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid #e9ecef;
+}
+
+.debt-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.debt-card .card-header h5 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1rem;
+}
+
+.tracking-number {
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.debt-info {
+  margin-bottom: 15px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.info-row label {
+  font-weight: 500;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.debt-amount {
+  color: #e74c3c;
+  font-weight: 600;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 768px) {
   .modal-content { width: 95%; margin: 10px; }
   .detail-grid { grid-template-columns: 1fr; }
   .parts-header, .part-item { grid-template-columns: 1fr; gap: 5px; }
+  
+  /* ریسپانسیو کردن بدهی تکنسین‌ها */
+  .technician-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .technician-summary {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .desktop-table {
+    display: none;
+  }
+  
+  .mobile-cards {
+    display: block;
+  }
+  
+  .debt-card {
+    margin-bottom: 10px;
+  }
+  
+  .card-actions {
+    justify-content: center;
+  }
+  
+  /* ریسپانسیو کردن جدول تراکنش‌ها */
+  .transactions-table {
+    overflow-x: auto;
+  }
+  
+  .table th, .table td {
+    padding: 8px 6px;
+    font-size: 0.9rem;
+  }
+  
+  .btn-sm {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
 }
 </style>
