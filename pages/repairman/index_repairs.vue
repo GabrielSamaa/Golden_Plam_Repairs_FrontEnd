@@ -299,10 +299,10 @@ onMounted(async () => {
         }
       });
       repairs.value = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.result || []);
-      console.log('داده دریافتی از API:', repairs.value);
+      
     }
   } catch (error) {
-    console.error('خطا در دریافت لیست تعمیرات:', error, error?.response?.data);
+    
     Command: toastr["error"]("خطا در دریافت لیست تعمیرات از سرور ", "خطا در دریافت")
 
 toastr.options = {
@@ -334,7 +334,7 @@ toastr.options = {
 
 // Add a watch to monitor repairs changes
 watch(repairs, (newRepairs) => {
-  console.log('Repairs updated:', newRepairs)
+  
 }, { deep: true })
 
 const filteredRepairs = computed(() => {
@@ -394,7 +394,7 @@ const filteredRepairs = computed(() => {
 
     return result;
   } catch (error) {
-    console.error('Error in filteredRepairs:', error);
+    
     return [];
   }
 });
@@ -524,7 +524,7 @@ const completeRepair = async () => {
       closeModal();
       
     } catch (error) {
-      console.error('خطا در تکمیل تعمیر:', error);
+      
       toastr.error("خطا در بروزرسانی وضعیت");
     }
   }
@@ -582,7 +582,7 @@ const closePartsModal = () => {
 
 const showCustomerDetails = () => {
   if (!selectedRepair.value) {
-    console.error('No repair selected')
+   
     return
   }
   showCustomerModal.value = true

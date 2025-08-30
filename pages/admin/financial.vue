@@ -361,7 +361,7 @@ async function fetchFixedDevices() {
   try {
     isLoading.value = true
     const res = await $api.get('/device/fixed-devices')
-    console.log('API Response:', res.data)
+    
     
     if (res.data && Array.isArray(res.data)) {
       // فیلتر کردن فقط دستگاه‌های unpaid
@@ -413,11 +413,11 @@ async function fetchFixedDevices() {
                   }
                 }
               } catch (parseError) {
-                console.error('Error parsing JSON repair_details for item', item.id, ':', parseError)
+               
               }
             }
           } catch (error) {
-            console.error('Error processing repair_details for item', item.id, ':', error)
+            
           }
         }
         
@@ -459,7 +459,7 @@ async function fetchFixedDevices() {
       })
     }
   } catch (error) {
-    console.error('خطا در بارگذاری اطلاعات:', error)
+   
     showMessage('خطا', 'خطا در بارگذاری اطلاعات')
   } finally {
     isLoading.value = false
@@ -527,7 +527,7 @@ const viewDetails = async (record) => {
   // دریافت جزئیات قطعات و نام تکنسین از سرور
   try {
     const res = await $api.get(`/device/repair/${record.id}`)
-    console.log('Device Repair API Response:', res.data)
+   
     
     let partsArr = []
     let totalPartsCost = 0
@@ -542,7 +542,7 @@ const viewDetails = async (record) => {
           try {
             details = JSON.parse(details)
           } catch (parseError) {
-            console.error('Error parsing repair_details JSON:', parseError)
+            
             details = []
           }
         }
@@ -566,7 +566,7 @@ const viewDetails = async (record) => {
           })
         }
       } catch (error) {
-        console.error('Error processing repair details:', error)
+        
       }
     }
 
@@ -585,7 +585,7 @@ const viewDetails = async (record) => {
     selectedRecord.value.totalPartsCost = totalPartsCost
     selectedRecord.value.technicianName = technicianName
   } catch (error) {
-    console.error('Error fetching device details:', error)
+   
   }
 }
 
@@ -699,7 +699,7 @@ const settle = async (row) => {
     buildDebts()
     showMessage('موفقیت', 'تسویه با موفقیت انجام شد')
   } catch (error) {
-    console.error('خطا در تسویه:', error)
+  
     showMessage('خطا', 'خطا در تسویه')
   } finally {
     row._loading = false
@@ -720,7 +720,7 @@ const settleGroup = async (technician) => {
     buildDebts()
     showMessage('موفقیت', 'تسویه به '+technician+' با موفقیت انجام شد')
   } catch (error) {
-    console.error('خطا در تسویه به '+technician+':', error)
+   
     showMessage('خطا', 'خطا در تسویه به '+technician)
   } finally {
     group.settling = false
@@ -728,7 +728,7 @@ const settleGroup = async (technician) => {
 }
 
 const applyFilters = () => {
-  console.log('فیلترهای مالی اعمال شد:', { fromDate: fromDate.value, toDate: toDate.value, type: transactionType.value })
+  
 }
 
 const openConfirmModal = (action, message) => {

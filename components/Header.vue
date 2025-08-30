@@ -72,7 +72,7 @@
       isOpen.value = res.data.status
       shopStatus.value = isOpen.value ? "مغازه باز است" : "مغازه بسته است"
     } catch (e) {
-      console.error('Error checking shop status:', e)
+     
       shopStatus.value = "خطا در دریافت وضعیت"
     }
   }

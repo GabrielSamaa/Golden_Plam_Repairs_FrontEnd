@@ -303,7 +303,7 @@ toastr.options = {
     closeRepairmanForm();
 
   } catch (error) {
-    console.error('Error submitting repairman form:', error);
+    
     Command: toastr["error"]("خطا در ثبت اطلاعات ; لطفا دوباره تلاش کنید", "خطا")
 
 toastr.options = {

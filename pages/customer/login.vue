@@ -151,7 +151,7 @@ watch(phone, (newValue) => {
 // ارسال کد تأیید
 const sendVerificationCode = async () => {
   const phoneStr = typeof phone.value === 'string' ? phone.value : ''
-  console.log('sending code', phoneStr) // Debug log
+  
   if (!phoneStr || phoneStr.length !== 11) {
     error.value = 'لطفاً شماره تماس را به درستی وارد کنید'
     return
@@ -162,7 +162,7 @@ const sendVerificationCode = async () => {
     const response = await $axios.post('/user/auth', {
       mobile: phoneStr
     })
-    console.log('response from /user/auth:', response) // Debug log
+   
     if (response.status === 200 && response.data?.message) {
       codeSent.value = true
       startResendTimer()
@@ -173,7 +173,7 @@ const sendVerificationCode = async () => {
     }
   } catch (err) {
     error.value = 'اتصال به سرور برقرار نشد'
-    console.error('Error sending verification code:', err)
+   
   } finally {
     isSendingCode.value = false
   }
@@ -222,7 +222,7 @@ const verifyCode = async () => {
     } else {
       error.value = 'خطا در ارسال درخواست'
     }
-    console.error('Error verifying code:', err)
+   
   } finally {
     isVerifying.value = false
   }

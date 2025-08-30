@@ -288,7 +288,7 @@ toastr.options = {
       router.push('/customer/login')
     }
   } catch (error) {
-    console.error('Error fetching repair details:', error)
+    
     Command: toastr["error"]("خطا در دریافت اطلاعات تعمیر", "خطا")
 
 toastr.options = {

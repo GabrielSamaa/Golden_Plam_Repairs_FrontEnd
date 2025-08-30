@@ -188,7 +188,7 @@ const continueRepair = (repairId) => {
 
 const viewRepairDetails = (repairId) => {
   // Implement view details functionality
-  console.log('View repair details:', repairId)
+ 
 }
 </script>
 

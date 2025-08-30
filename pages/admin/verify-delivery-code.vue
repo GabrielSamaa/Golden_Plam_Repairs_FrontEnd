@@ -123,7 +123,7 @@ onMounted(async () => {
       successMessage.value = 'این دستگاه قبلاً به مشتری تحویل داده شده است';
     }
   } catch (error) {
-    console.error('Error loading repair data:', error);
+    
     errorMessage.value = error.response?.data?.message || 'خطا در بارگذاری اطلاعات تعمیر';
   }
   finally {
@@ -160,7 +160,7 @@ const verifyCode = async () => {
     }, 2000);
 
   } catch (error) {
-    console.error('Error verifying code:', error);
+    
     errorMessage.value = error.response?.data?.message || 'کد وارد شده صحیح نیست یا خطایی رخ داده است.';
   } finally {
     isVerifying.value = false;

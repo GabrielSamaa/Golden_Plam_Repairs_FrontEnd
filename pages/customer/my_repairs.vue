@@ -160,7 +160,7 @@ onMounted(async () => {
   try {
     const { $axios } = useNuxtApp()
     const response = await $axios.get(`/user-device`)
-    console.log(response)
+    
     // تبدیل داده‌های API به فرمت مورد نیاز
     repairs.value = response.data.map(repair => ({
       id: repair.id,
@@ -178,7 +178,7 @@ onMounted(async () => {
     }))
 
   } catch (error) {
-    console.error('Error fetching repairs:', error)
+   
     Command: toastr["error"]("خطا در دریافت اطلاعات تعمیرات", "خطا")
 
 toastr.options = {

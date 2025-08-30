@@ -224,13 +224,13 @@ onMounted(async () => {
       activeRepairmen.value = res.data
     }
   } catch (e) {
-    console.error('خطا در دریافت لیست تعمیرکاران:', e, e?.response?.data)
+    
   }
 
   // Load editing reception if exists
   const editingReception = JSON.parse(localStorage.getItem('editingReception') || 'null')
   if (editingReception) {
-    // console.log('Debug - Loading editing reception:', editingReception)
+    
     form.value = {
       fullName: editingReception.customerName,
       phone: editingReception.phone,
@@ -268,7 +268,7 @@ onMounted(async () => {
       deviceCategories.value = res.data
     }
   } catch (e) {
-    console.error('خطا در دریافت دسته‌بندی دستگاه:', e, e?.response?.data)
+    
   }
 })
 
@@ -454,7 +454,7 @@ toastr.options = {
 }
       }
     } catch (e) {
-      console.error('خطا در ثبت اطلاعات دستگاه در دیتابیس:', e, e?.response?.data)
+     
       Command: toastr["error"]("فرم ثبت نشد", "خطا")
 
 toastr.options = {

@@ -150,7 +150,7 @@ const submitForm = async () => {
     } else {
       errorMessage.value = 'خطایی در ارسال پیام رخ داد. لطفاً دوباره تلاش کنید.'
     }
-    console.error('Error submitting form:', error)
+   
   } finally {
     loading.value = false
   }

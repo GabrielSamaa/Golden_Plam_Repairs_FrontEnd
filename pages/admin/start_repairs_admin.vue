@@ -227,9 +227,9 @@
         }))
       : []
 
-    console.log('Parsed parts:', parts.value) // برای دیباگ
+   
   } catch (e) {
-    console.error('Error fetching device parts:', e)
+    
     parts.value = []
   }
 
@@ -485,7 +485,7 @@ toastr.options = {
 }
     
   } catch (error) {
-    console.error('خطا در حذف قطعه:', error)
+    
     Command: toastr["error"]("خطا در حذف قطعه", "خطا")
 
 toastr.options = {
@@ -537,7 +537,7 @@ const fetchReplacedParts = async (repairId) => {
     )
 
   } catch (error) {
-    console.error('خطا در دریافت قطعات تعویض شده:', error)
+   
     replacedParts.value = []
   }
 }
@@ -591,7 +591,7 @@ toastr.options = {
   "hideMethod": "fadeOut"
 }
   } catch (error) {
-    console.error('خطا در حذف قطعه:', error)
+    
     Command: toastr["error"]("خطا در حذف قطعه", "خطا")
 
 toastr.options = {
@@ -706,7 +706,7 @@ toastr.options = {
     await fetchPartsFromDB(repairId)
     router.push('/admin/index_repairs_admin')
   } catch (error) {
-    console.error('خطا در ذخیره اطلاعات:', error?.response?.data)
+    
     Command: toastr["error"]("خطا در ارتباط   با  سرور", "خطا")
 
 toastr.options = {

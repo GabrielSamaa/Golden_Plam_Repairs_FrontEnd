@@ -52,7 +52,7 @@ export const useAuth = () => {
         return
       }
     } catch (error) {
-      console.error('Auth initialization error:', error)
+     
     }
     clearAuth()
   }

@@ -143,7 +143,7 @@ async function cheng() {
     const res = await $api.get('/status')
     status.value = res.data.status ? "مغازه باز است" : "مغازه بسته است"
   } catch (e) {
-    console.error('Error fetching status:', e)
+   
     status.value = "خطا در دریافت وضعیت"
   }
 }
@@ -154,7 +154,7 @@ async function state() {
     await $api.put('/status', { status: newStatus })
     await cheng()
   } catch (e) {
-    console.error('Error updating status:', e)
+   
     toastr.error('خطا در تغییر وضعیت مغازه')
   }
 }
@@ -230,7 +230,7 @@ const handleLogout = async () => {
     // هدایت به صفحه لاگین
     await router.replace('/login')
   } catch (error) {
-    console.error('Error during logout:', error)
+   
   }
 }
 
@@ -240,7 +240,7 @@ const updateUserInfo = () => {
     const userData = JSON.parse(localStorage.getItem('currentUser') || 'null')
     currentUser.value = userData
   } catch (error) {
-    console.error('Error updating user info:', error)
+    
     currentUser.value = null
   }
 }
@@ -251,7 +251,7 @@ const updateUnreadCount = async () => {
     const response = await $api.get('user/Message/unread-count')
     unreadCount.value = response.data.count
   } catch (error) {
-    console.error('Error fetching unread messages count:', error)
+    
     unreadCount.value = 0
   }
 }

@@ -123,7 +123,7 @@ const loadMessages = async () => {
     const response = await $api.get('user/Message/')
     messages.value = response.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
   } catch (err) {
-    console.error('Error loading messages:', err)
+    
     error.value = 'خطا در بارگذاری پیام‌ها. لطفاً دوباره تلاش کنید.'
   } finally {
     isLoading.value = false
@@ -164,7 +164,7 @@ const viewMessage = async (message) => {
       }
     }
   } catch (error) {
-    console.error('Error marking message as read:', error)
+    
     toastr.error('خطا در بروزرسانی وضعیت پیام')
   }
 }
@@ -184,7 +184,7 @@ const deleteMessage = async () => {
       messages.value = messages.value.filter(m => m.id !== selectedMessage.value.id)
       showMessageModal.value = false
     } catch (err) {
-      console.error('Error deleting message:', err)
+      
       Command: toastr["error"]("خطا در حذف پیام", "خطا")
 
 toastr.options = {

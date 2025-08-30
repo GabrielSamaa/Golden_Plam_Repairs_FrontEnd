@@ -341,7 +341,7 @@ onMounted(async () => {
       activeRepairmen.value = res.data
     }
   } catch (e) {
-    console.error('خطا در دریافت تعمیرکاران:', e)
+   
   }
 
   // Load device categories
@@ -357,7 +357,7 @@ onMounted(async () => {
       deviceCategories.value = res.data
     }
   } catch (e) {
-    console.error('خطا در دریافت دسته‌بندی دستگاه:', e)
+    
   }
 
   finally {
@@ -404,11 +404,7 @@ const getStatusText = (status) => {
 
 const applyReceptionFilters = () => {
   // در واقعیت اینجا درخواست به سرور ارسال می‌شود
-  console.log('فیلترهای پذیرش اعمال شد:', {
-    search: receptionSearch.value,
-    status: receptionStatus.value,
-    fromDate: receptionFromDate.value
-  })
+  
 }
 
 const showCardModal = ref(false)

@@ -173,7 +173,7 @@ const sendVerificationCode = async () => {
       userType: role.value === 'admin' ? 1 : 2
     })
 
-    console.log('پاسخ سرور:', response.data) // برای دیباگ
+   
 
     // تغییر اصلی اینجا - بررسی دقیق پاسخ سرور
     if (response.data?.success) {
@@ -184,7 +184,7 @@ const sendVerificationCode = async () => {
       toastr.error("خطا در ارسال کد تأیید")
     }
   } catch (error: any) {
-    console.error('خطا در ارسال کد:', error)
+    
     errorMessage.value = 'اتصال به سرور برقرار نشد'
   } finally {
     isSendingCode.value = false

@@ -246,7 +246,7 @@ const loadArchiveItems = async () => {
         archiveDate: new Date(item.updated_at).toLocaleDateString('fa-IR')
       }));
   } catch (error) {
-    console.error('Error loading archive items:', error);
+    
     archiveItems.value = [];
   }
   finally {
@@ -285,11 +285,7 @@ const formatCurrency = (amount) => new Intl.NumberFormat('fa-IR').format(Number(
 
 const applyArchiveFilters = () => {
   // در واقعیت اینجا درخواست به سرور ارسال می‌شود
-  console.log('فیلترهای بایگانی اعمال شد:', {
-    search: archiveSearch.value,
-    status: archiveStatus.value,
-    fromDate: archiveFromDate.value
-  })
+
 }
 
 const viewArchiveItem = (id) => {
@@ -346,7 +342,7 @@ const viewFinancialDetails = async (id) => {
     
     showFinancialModal.value = true
   } catch (error) {
-    console.error('خطا در دریافت جزئیات مالی:', error)
+   
   }
 }
 
@@ -361,9 +357,9 @@ const deleteArchiveItem = (id) => {
       // Remove from archive
       archiveItems.value = archiveItems.value.filter(item => item.id !== id)
       localStorage.setItem('archiveItems', JSON.stringify(archiveItems.value))
-      console.log('Deleted archive item:', id) // Debug log
+      
     } catch (error) {
-      console.error('Error deleting archive item:', error)
+     
     }
   }
 }

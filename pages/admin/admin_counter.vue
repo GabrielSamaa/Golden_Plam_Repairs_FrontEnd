@@ -199,7 +199,7 @@
     // فیلتر کردن دستگاه‌هایی که وضعیت delivered ندارند
     repairs.value = response.data.filter(device => device.status !== 'delivered');
   } catch (error) {
-    console.error('Error loading repairs:', error);
+   
     Command: toastr["error"]("خطا در بارگذاری لیست دستگاه ها", "خطا")
 
 toastr.options = {
@@ -243,7 +243,7 @@ toastr.options = {
     // todayIncome.value = incomeTodayResponse.data.income;
 
   } catch (error) {
-    console.error('Error loading dashboard stats:', error);
+   
     Command: toastr["error"]("خطا در بارگذاری آمارهای داشبورد", "خطا")
 
 toastr.options = {
@@ -267,9 +267,9 @@ toastr.options = {
  };
 
  onMounted(() => {
-  console.log('Component mounted. Checking user role...');
+  
   const userRole = localStorage.getItem('role');
-  console.log('User role from localStorage:', userRole);
+  
   if (userRole === 'admin' || userRole === 'super-admin' || userRole === 'counter' || userRole === '1') {
     loadRepairs();
     loadDashboardStats();
@@ -313,7 +313,7 @@ toastr.options = {
   "hideMethod": "fadeOut"
 }
     } catch (error) {
-      console.error('Error confirming repair:', error);
+      
       Command: toastr["error"]("خطا در تایید دستگاه", "خطا")
 
 toastr.options = {
@@ -366,7 +366,7 @@ toastr.options = {
 }
       goToVerification(repair);
     } catch (error) {
-      console.error('Error sending verification code:', error);
+      
       Command: toastr["error"]("خطا در ارسال پیامک کد تایید", "خطا")
 
 toastr.options = {
@@ -422,7 +422,7 @@ toastr.options = {
   "hideMethod": "fadeOut"
 }
     } catch (error) {
-      console.error('Error cancelling confirmation:', error);
+      
       Command: toastr["error"]("خطا در لغو وضعیت تایید", "خطا")
 
 toastr.options = {
@@ -472,7 +472,7 @@ toastr.options = {
   "hideMethod": "fadeOut"
 }
     } catch (error) {
-      console.error('Error moving to archive:', error);
+      
       Command: toastr["error"]("خطا در ارسال به بایگانی", "انتقال ناموفق")
 
 toastr.options = {
