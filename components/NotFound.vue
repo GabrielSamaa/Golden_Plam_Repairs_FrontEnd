@@ -21,22 +21,17 @@
         <span class="error-word">نیست</span>
       </div>
       
-      <div class="search-box">
-        <input type="text" class="search-input" placeholder="چیزی که به دنبال آن هستید را جستجو کنید..." v-model="searchQuery">
-        <button class="search-btn" @click="performSearch">
-          <i class="fas fa-search"></i>
-        </button>
-      </div>
+      
       
       <div class="actions">
         <button class="btn btn-primary" @click="goHome">
           <i class="fas fa-home"></i>
           بازگشت به خانه
         </button>
-        <button class="btn btn-secondary" @click="goBack">
+        <!-- <button class="btn btn-secondary" @click="goBack">
           <i class="fas fa-arrow-right"></i>
           بازگشت به قبلی
-        </button>
+        </button> -->
       </div>
     </div>
   </div>
@@ -54,15 +49,10 @@ export default {
     goHome() {
       this.$router.push('/');
     },
-    goBack() {
-      this.$router.go(-1);
-    },
-    performSearch() {
-      if (this.searchQuery.trim()) {
-        // اینجا می‌توانید منطق جستجو را پیاده‌سازی کنید
-        alert(`در حال جستجو برای: ${this.searchQuery}`);
-      }
-    }
+    // goBack() {
+    //   this.$router.go(-1);
+    // },
+    
   }
 }
 </script>
