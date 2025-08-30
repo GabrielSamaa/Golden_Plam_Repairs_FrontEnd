@@ -20,26 +20,18 @@
           <label>تا تاریخ:</label>
           <PersianDatePicker v-model="toDate" placeholder="تاریخ را انتخاب کنید" />
         </div>
-        <div class="col-md-3">
-          <label>نوع تراکنش:</label>
-          <select class="form-control" v-model="transactionType">
-            <option value="all">همه</option>
-            <option value="repair">تعمیرات</option>
-            <option value="income">درآمد</option>
-            <option value="expense">هزینه</option>
-          </select>
-        </div>
+        
         <div class="col-md-3">
           <label>جستجو:</label>
           <input type="text" class="form-control" v-model="searchQuery" placeholder="شماره پیگیری، مشتری یا دستگاه..." />
         </div>
-        <div class="col-md-3">
+        <!-- <div class="col-md-3">
           <button class="btn btn-primary" @click="applyFilters">اعمال فیلتر</button>
-        </div>
+        </div> -->
       </div>
     </div>
 
-    <div class="summary-section">
+    <!-- <div class="summary-section">
       <div class="row">
         <div class="col-md-3">
           <div class="summary-card income">
@@ -66,7 +58,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <div class="transactions-section">
       <h3>تراکنش‌ها</h3>

@@ -11,7 +11,7 @@
             <a href="https://t.me/nakhltalaei" class="social-icon telegram">
               <i class="fab fa-telegram"></i>
             </a>
-            <a href="https://nakhl.talaei.safari" class="social-icon instagram">
+            <a href="https://www.instagram.com/nakhl.talaei.safari?igsh=MXVtZG81OG1pdHh6OQ==" class="social-icon instagram">
               <i class="fab fa-instagram"></i>
             </a>
           </div>

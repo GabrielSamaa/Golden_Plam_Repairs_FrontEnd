@@ -52,9 +52,9 @@
             <th>تاریخ ثبت</th>
             <th>نام مشتری</th>
             <th>نوع دستگاه</th>
-            <th>مشکل</th>
+            <!-- <th>مشکل</th> -->
             <th>تاریخ تحویل</th>
-            <th>مبلغ کل</th>
+            <!-- <th>مبلغ کل</th> -->
             <th>عملیات</th>
           </tr>
         </thead>
@@ -64,9 +64,9 @@
             <td>{{ item.date }}</td>
             <td>{{ item.customerName }}</td>
             <td>{{ item.deviceType }}</td>
-            <td>{{ item.issue }}</td>
+            <!-- <td>{{ item.issue }}</td> -->
             <td>{{ item.archiveDate }}</td>
-            <td>{{ item.statement.toLocaleString() }} تومان</td>
+            <!-- <td>{{ item.statement.toLocaleString() }} تومان</td> -->
             <td>
               <button class="btn btn-sm btn-outline-primary" @click="viewArchiveItem(item.id)">
                 <i class="fas fa-eye"></i>

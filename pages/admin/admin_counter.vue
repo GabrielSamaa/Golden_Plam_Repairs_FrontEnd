@@ -21,7 +21,7 @@
           <p>دستگاه‌های آماده تحویل</p>
         </div>
       </div>
-      <div class="stat-card">
+      <!-- <div class="stat-card">
         <div class="stat-icon bg-success">
           <i class="fas fa-check-circle"></i>
         </div>
@@ -29,17 +29,17 @@
           <h3>{{ deliveredTodayCount }}</h3>
           <p>دستگاه‌های تحویل داده شده امروز</p>
         </div>
-      </div>
+      </div> -->
       <div class="stat-card">
         <div class="stat-icon bg-warning">
           <i class="fas fa-clock"></i>
         </div>
         <div class="stat-info">
           <h3>{{ pendingDeliveryCount }}</h3>
-          <p>در انتظار تحویل</p>
+          <p>در انتظار تحویل به مشتری</p>
         </div>
       </div>
-      <div class="stat-card">
+      <!-- <div class="stat-card">
         <div class="stat-icon bg-info">
           <i class="fas fa-money-bill-wave"></i>
         </div>
@@ -47,7 +47,7 @@
           <h3>{{ todayIncome.toLocaleString() }} تومان</h3>
           <p>درآمد امروز</p>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <div class="delivery-list">
@@ -158,8 +158,8 @@
  const sortBy = ref('date');
  const repairs = ref([]);
  const isLoading = ref(false);
- const deliveredTodayCount = ref(0);
- const todayIncome = ref(0);
+//  const deliveredTodayCount = ref(0);
+//  const todayIncome = ref(0);
  const { $axios } = useNuxtApp();
 
  const filteredRepairs = computed(() => {
@@ -183,7 +183,7 @@
 
  const pendingDeliveryCount = computed(() => {
   return repairs.value.filter(repair => 
-    repair.status === 'fixed' && !repair.readyForDelivery
+    repair.status === 'confirmed' && !repair.readyForDelivery
   ).length;
  });
 
@@ -239,8 +239,8 @@ toastr.options = {
       $axios.get('/financial/income-today', { headers })
     ]);
 
-    deliveredTodayCount.value = deliveredTodayResponse.data.count;
-    todayIncome.value = incomeTodayResponse.data.income;
+    // deliveredTodayCount.value = deliveredTodayResponse.data.count;
+    // todayIncome.value = incomeTodayResponse.data.income;
 
   } catch (error) {
     console.error('Error loading dashboard stats:', error);

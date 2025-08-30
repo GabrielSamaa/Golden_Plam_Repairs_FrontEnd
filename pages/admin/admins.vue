@@ -23,8 +23,8 @@
           <tr>
             <th>شماره تماس</th>
             <th>نام و نام خانوادگی</th>
-            <th>تخصص</th>
-            <th>وضعیت</th>
+            <!-- <th>تخصص</th> -->
+            <!-- <th>وضعیت</th> -->
             <th>تاریخ ثبت‌نام</th>
             <th>عملیات</th>
           </tr>
@@ -33,17 +33,17 @@
           <tr v-for="repairman in filteredRepairmen" :key="repairman.id">
             <td>{{ repairman.phone }}</td>
             <td>{{ repairman.fullName }}</td>
-            <td>{{ getSpecialtyText(repairman.specialty) }}</td>
-            <td>
+            <!-- <td>{{ getSpecialtyText(repairman.specialty) }}</td> -->
+            <!-- <td>
               <span :class="'status-' + repairman.status">
                 {{ getStatusText(repairman.status) }}
               </span>
-            </td>
+            </td> -->
             <td>{{ formatDate(repairman.createdAt) }}</td>
             <td>
-              <button class="btn btn-sm btn-outline-primary" @click="viewRepairman(repairman)">
+              <!-- <button class="btn btn-sm btn-outline-primary" @click="viewRepairman(repairman)">
                 <i class="fas fa-eye"></i>
-              </button>
+              </button> -->
               <button class="btn btn-sm btn-outline-success" @click="editRepairman(repairman)">
                 <i class="fas fa-edit"></i>
               </button>
@@ -87,7 +87,7 @@
                 required
               >
             </div>
-            <div class="form-group">
+            <!-- <div class="form-group">
               <label>تخصص</label>
               <select class="form-control" v-model="repairmanForm.specialty" required>
                 <option value="mobile">موبایل</option>
@@ -95,14 +95,14 @@
                 <option value="tablet">تبلت</option>
                 <option value="general">عمومی</option>
               </select>
-            </div>
-            <div class="form-group">
+            </div> -->
+            <!-- <div class="form-group">
               <label>وضعیت</label>
               <select class="form-control" v-model="repairmanForm.status" required>
                 <option value="active">فعال</option>
                 <option value="inactive">غیرفعال</option>
               </select>
-            </div>
+            </div> -->
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="closeRepairmanForm">
                 انصراف

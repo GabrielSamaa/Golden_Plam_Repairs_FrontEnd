@@ -25,12 +25,7 @@
       </div>
       <div class="filters">
         <div class="search-box">
-          <input
-              type="text"
-              class="form-control"
-              v-model="searchQuery"
-              placeholder="جستجو در تعمیرات..."
-          >
+          
         </div>
         <select class="form-select" v-model="statusFilter">
           <option value="all">همه وضعیت‌ها</option>
